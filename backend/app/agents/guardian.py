@@ -43,6 +43,21 @@ INPUT_RULES: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
     (
+        "Tries to override instructions",
+        re.compile(
+            r"(?<![\"“'‘])\b(?:ignore|disregard|forget|override)\s+(?:all|any|your)\s+"
+            r"(?:instructions?|prompts?|rules|directions|guidelines)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "Addresses the marker as an AI",
+        re.compile(
+            r"\bas\s+an\s+ai\b(?=[^.!?\n]*\b(?:you|must|give|mark|award|pass)\b)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
         "Tries to extract the system prompt",
         re.compile(
             r"\b(?:reveal|show|print|repeat|leak)\s+(?:\w+\s+){0,3}?"
@@ -375,6 +390,9 @@ def check_output(text: str, mode: str = "output") -> str:
         text = ""
     mode_label = mode or "output"
     reasons = _output_reasons(text)
+    if mode == "teach_max":
+        # Max is confidently wrong by design, so certainty isn't a fault in his lines.
+        reasons = [reason for reason in reasons if reason != "Unsupported certainty"]
     if reasons or not text.strip():
         label = reasons[0] if reasons else "empty output"
         record_event("Guardian", "output_blocked", f"Output blocked: {label}")
