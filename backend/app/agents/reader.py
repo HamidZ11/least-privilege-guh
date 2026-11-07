@@ -19,7 +19,7 @@ CONCEPTS_PROMPT = f"""You read a university student's submission and record the 
 
 The JSON has one field, "submission". Return 4 to 6 concepts, each a named research or subject idea the argument relies on, such as "Correlation vs causation" or "Self-report bias".
 - id: "c1", "c2", and so on.
-- name: the general idea in 2 to 5 words, not a summary of the essay.
+- name: the standard textbook term for the idea, in 2 to 5 words, not a description of this essay. Where the student reasons from an association to a cause, the term is "Correlation vs causation", whatever reason they give for doing so. Other standard terms include Sampling, Self-report bias, Cross-sectional design and Mediating variables.
 - claim: what the student says about this idea, stated neutrally and faithfully, even if it is wrong.
 - quote: the single full sentence where the student relies on the idea, copied character for character. No ellipses, no edits, no joined sentences.
 - confidence: from 0 to 1, how sure you are that the quote shows this concept.
