@@ -181,9 +181,9 @@ export default function ChatPanel({
   }[phase];
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-      <Card className="flex h-[calc(100vh-18rem)] min-h-[480px] flex-col">
-        <div className="flex items-center gap-3 border-b border-line px-5 py-3">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
+      <Card className="flex h-[calc(100dvh-216px)] min-h-[520px] min-w-0 flex-col overflow-hidden">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
           <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white transition-colors ${isMax ? "bg-[#0f766e]" : "bg-btn"}`}>{isMax ? "M" : "E"}</span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">{isMax ? "Max, a fellow student" : "Viva examiner"}</p>
@@ -205,22 +205,24 @@ export default function ChatPanel({
           </div>
         )}
         {finished && (
-          <div className="border-b border-line bg-[#f6f7fa] px-5 py-3 text-sm">
+          <div className="border-b border-line bg-[#fafafa] px-5 py-3 text-sm">
             <p className="mb-1 font-medium">Viva complete. Your module leader will review it.</p>
             {session.revise.length > 0 && <><p className="text-ink2">Three things worth revising:</p>
             <ol className="list-decimal pl-5 text-ink2">{session.revise.map((r) => <li key={r}>{r}</li>)}</ol></>}
           </div>
         )}
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4" aria-live="polite">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6" aria-live="polite">
           {transcript.length === 0 && phase === "thinking" && <div className="space-y-2"><Skeleton className="h-12 w-3/4" /><Skeleton className="h-12 w-1/2" /></div>}
           {transcript.map((t, i) => {
             const mine = t.role === "student";
             return (
               <div key={i} className={`fadein flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-md px-3.5 py-2.5 ${mine ? "bg-btn text-white" : isMax ? "bg-[#e6f4f2]" : "bg-[#eef1f7]"}`}>
-                  {!mine && <p className="mb-0.5 text-xs font-medium text-ink2">{label}{mode === "voice" && <span className="font-normal"> · captions</span>}</p>}
-                  <p className="whitespace-pre-wrap leading-relaxed">{t.text}</p>
+                <div className="min-w-0 max-w-[88%]">
+                  <p className="mb-2 flex items-center gap-2 text-xs text-ink2">{!mine && <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white ${isMax ? "bg-[#0f766e]" : "bg-ink"}`}>{isMax ? "M" : "E"}</span>}<span className="font-medium">{mine ? "You" : label}</span>{!mine && mode === "voice" && <span>· captions</span>}</p>
+                  <div className={`rounded-xl px-4 py-3 ${mine ? "bg-[#f0f0f0] text-ink" : isMax ? "border border-[#d8eae6] bg-[#f3f9f7]" : "border border-line bg-[#fafafa]"}`}>
+                    <p className="whitespace-pre-wrap break-words leading-relaxed">{t.text}</p>
+                  </div>
                 </div>
               </div>
             );
@@ -292,7 +294,7 @@ export default function ChatPanel({
         </form>
       </Card>
 
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <MasteryRail concepts={session.concepts} activeId={focusConceptId ?? session.current_concept_id} title={railTitle} />
         <p className="px-1 text-xs text-ink3">
           {isMax ? "This is practice, not marked. " : "Your answers are checked against your own submission. "}
