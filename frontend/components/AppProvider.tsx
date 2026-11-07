@@ -40,6 +40,8 @@ type Ctx = Store & {
   saveLabSession: (labId: string, s: Session) => void;
   saveLabFeedback: (labId: string, rubric: Session["rubric"]) => void;
   patchAssessment: (id: string, patch: Partial<Assessment>) => void;
+  addAssessment: (a: Omit<Assessment, "id" | "status" | "custom">) => void;
+  removeAssessment: (id: string) => void;
   decide: (id: string, d: Decision) => void;
   resetDemo: () => void;
 };
@@ -123,6 +125,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveLabSession: (labId, sess) => update((s) => ({ ...s, labSessions: { ...s.labSessions, [labId]: sess } })),
     saveLabFeedback: (labId, rubric) => update((s) => ({ ...s, labFeedback: { ...s.labFeedback, [labId]: rubric } })),
     patchAssessment: (id, patch) => update((s) => ({ ...s, assessments: s.assessments.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
+    addAssessment: (a) => {
+      const id = `a${Date.now()}`;
+      update((s) => ({ ...s, assessments: [...s.assessments, { ...a, id, status: "not_started", custom: true }] }));
+      notify("student", `New assessment: ${a.title}, due ${a.due}.`, "/submit");
+    },
+    removeAssessment: (id) => update((s) => ({ ...s, assessments: s.assessments.filter((x) => x.id !== id || x.status !== "not_started") })),
     decide: (id, d) => update((s) => ({ ...s, assessments: s.assessments.map((a) => (a.id === id ? { ...a, status: "reviewed", decision: d } : a)) })),
     resetDemo: () => { const f = fresh(); registerLabs(f.labs); setStore(f); },
     // eslint-disable-next-line react-hooks/exhaustive-deps

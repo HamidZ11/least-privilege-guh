@@ -90,6 +90,8 @@ export type Decision = { outcome: "satisfied" | "follow_up"; note: string; by: s
 export type Assessment = {
   id: string; title: string; kind: "quiz" | "final"; weight: number; due: string; linkedWeeks: number[];
   status: AssessStatus; workName?: string; session?: Session; decision?: Decision;
+  /** Set by the module leader on the Assessments page. Falls back to the module rubric. */
+  rubricText?: string; brief?: string; vivaRequired?: boolean; custom?: boolean;
 };
 
 export const SEED_ASSESSMENTS: Assessment[] = [

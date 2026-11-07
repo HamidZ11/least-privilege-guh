@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Activity, Bell, BookOpen, ClipboardCheck, FlaskConical, Grid3x3, Inbox, LayoutDashboard,
+  Activity, Bell, BookOpen, ClipboardCheck, ClipboardList, FlaskConical, Grid3x3, Inbox, LayoutDashboard,
   MessageCircle, ShieldCheck, Upload, Users, type LucideIcon,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
@@ -54,6 +54,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           { label: "Module leader", items: [
             { href: "/lecturer/escalations", label: "Student questions", icon: Inbox, badge: openEscalations },
             { href: "/lecturer/labs", label: "Weekly labs", icon: FlaskConical },
+            { href: "/lecturer/assessments", label: "Assessments", icon: ClipboardList },
             { href: "/lecturer/reports", label: "Viva reports", icon: Users, badge: unreadFor("lecturer", "/lecturer/reports") },
             { href: "/lecturer/heatmap", label: "Class insights", icon: Grid3x3 },
             { href: "/lecturer/agents", label: "AI agents & audit log", icon: Activity },
