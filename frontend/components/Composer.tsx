@@ -125,7 +125,7 @@ export default function Composer({
   return (
     <div className="border-t border-line p-3">
       <div
-        className={`rounded-2xl border bg-white transition-shadow focus-within:shadow-sm ${listening ? "border-[#e5372a]" : "border-[#d6d6d2] focus-within:border-ink3"}`}
+        className={`rounded-2xl border bg-white ${listening ? "border-[#e5372a]" : "border-[#d6d6d2] focus-within:border-neutral-400"}`}
       >
         <textarea
           ref={areaRef}
@@ -136,7 +136,9 @@ export default function Composer({
           disabled={disabled}
           placeholder={interim ? "" : placeholder}
           aria-label="Your answer"
-          className="block w-full resize-none bg-transparent px-4 pb-1 pt-3 text-[15px] leading-6 outline-none placeholder:text-ink3 disabled:text-ink3"
+          className="block w-full resize-none rounded-none border-0 bg-transparent px-4 pb-1 pt-3 text-[15px] leading-6 shadow-none outline-none ring-0 placeholder:text-ink3 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:text-ink3"
+          // globals.css sets an unlayered :focus-visible outline that beats utility classes; inline wins.
+          style={{ outline: "none", boxShadow: "none", border: 0 }}
         />
         {interim && (
           <p className="px-4 pb-1 text-[15px] leading-6 text-ink3" aria-live="polite">{interim}</p>
