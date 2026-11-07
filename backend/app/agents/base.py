@@ -93,6 +93,10 @@ def normalise(text: str) -> str:
     return " ".join(text.translate(_TYPOGRAPHY).split())
 
 
+def clamp_confidence(value: float) -> float:
+    return min(max(value, 0.0), 1.0)
+
+
 def require_unique_ids(items: list[dict[str, Any]], name: str) -> None:
     ids = [item["id"] for item in items]
     if len(ids) != len(set(ids)):
@@ -103,12 +107,18 @@ class Agent:
     name = "agent"
     system_prompt = ""
     output_model: type[BaseModel] | None = None
+    model: str | None = None  # None uses MODEL from .env
 
     def run(self, input: str) -> dict:
         schema = (
             anthropic.transform_schema(self.output_model) if self.output_model else None
         )
-        output = ask_claude(self.system_prompt, [{"role": "user", "content": input}], schema)
+        output = ask_claude(
+            self.system_prompt,
+            [{"role": "user", "content": input}],
+            schema,
+            model=self.model,
+        )
         if self.output_model:
             try:
                 output = self.output_model.model_validate(output).model_dump()

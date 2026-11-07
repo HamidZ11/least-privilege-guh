@@ -55,15 +55,17 @@ def ask_claude(
     system: str,
     messages: list[dict[str, Any]],
     json_schema: dict[str, Any] | None = None,
+    model: str | None = None,
 ) -> str | dict[str, Any]:
     """Return Claude's reply as text, or as a dict if json_schema is given.
 
     json_schema must be an object schema with "required" and
-    "additionalProperties": false. Raises LLMError on failure.
+    "additionalProperties": false. model overrides MODEL for this call.
+    Raises LLMError on failure.
     """
     client = _client()
     request: dict[str, Any] = {
-        "model": settings.claude_model,
+        "model": model or settings.claude_model,
         "max_tokens": MAX_TOKENS,
         "system": system,
         "messages": messages,
