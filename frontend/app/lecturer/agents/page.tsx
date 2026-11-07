@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Ban, Bot, ShieldAlert, ShieldCheck, ArrowUpRight, ScanSearch, UserCheck } from "lucide-react";
+import { Activity, Ban, Bot, ShieldAlert, ShieldCheck, ArrowUpRight, ScanSearch, UserCheck } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Card, PageTitle, Skeleton } from "@/components/ui";
 import { getAgents } from "@/lib/viva";
@@ -68,12 +68,12 @@ export default function Agents() {
         <h3 className="mb-4 text-sm font-semibold">Guardian log</h3>
         <ol className="space-y-3">
           {[...data.log].reverse().map((e, i) => {
-            const Icon = ICON[e.action];
+            const Icon = ICON[e.action as keyof typeof ICON] ?? Activity;
             const bad = e.action === "injection_blocked" || e.action === "output_blocked";
             return (
               <li key={i} className="fadein flex items-start gap-3">
                 <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${bad ? "bg-[#d9483b1f] text-red" : "bg-[#eef1f7] text-ink2"}`}><Icon size={13} /></span>
-                <div className="flex-1"><p className="text-sm font-medium">{LABEL[e.action]}</p><p className="text-ink2">{e.detail}</p></div>
+                <div className="flex-1"><p className="text-sm font-medium">{LABEL[e.action as keyof typeof LABEL] ?? e.action.replaceAll("_", " ")}</p><p className="text-ink2">{e.detail}</p></div>
                 <span className="tnum text-xs text-ink3">{e.ts}</span>
               </li>
             );
