@@ -1,8 +1,6 @@
 """App entry point and the Viva API (build prompt, section 7)."""
 
-import importlib
 import logging
-from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -11,11 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app import stubs
+from app.agents.reader import extract_concepts, extract_rubric, seed_statuses
 from app.llm import LLMError, LLMNotConfiguredError
 from app.parsing import ParseError, extract_text
 from app.routes import router as skeleton_router
 from app.sessions import create_session, get_session, list_sessions
+from app.stubs import resolve, using_stubs
 
 logger = logging.getLogger(__name__)
 
@@ -26,40 +25,19 @@ SESSION_FIELDS = (
     "max_transcript", "flags", "current_concept_id", "viva_started_at", "revise",
 )  # fmt: skip
 
-using_stubs: list[str] = []
-
-
-def _use(module: str, name: str) -> Callable[..., Any]:
-    """Return the real function if its module exists yet, else the stub."""
-    try:
-        return getattr(importlib.import_module(module), name)
-    except ModuleNotFoundError as error:
-        if error.name != module:
-            raise  # the module exists but is broken, which must not be hidden
-    except AttributeError:
-        pass
-    using_stubs.append(f"{module}.{name}")
-    return getattr(stubs, name)
-
-
-scan_input = _use("app.agents.guardian", "scan_input")
-agents_status = _use("app.agents.guardian", "agents_status")
-brief_text = _use("app.brief", "brief_text")
-ask_brief = _use("app.brief", "ask")
-brief_queue = _use("app.brief", "queue")
-answer_cluster = _use("app.brief", "answer")
-brief_broadcasts = _use("app.brief", "broadcasts")
-extract_concepts = _use("app.agents.reader", "extract_concepts")
-extract_rubric = _use("app.agents.reader", "extract_rubric")
-check_rubric = _use("app.agents.checker", "check_rubric")
-viva_turn = _use("app.agents.examiner", "viva_turn")
-max_turn = _use("app.agents.examiner", "max_turn")
-rephrase_turn = _use("app.agents.examiner", "rephrase")
-class_heatmap = _use("app.heatmap", "heatmap")
-synthesize = _use("app.tts", "synthesize")
-
-if using_stubs:
-    logger.warning("Using stubs for: %s", ", ".join(using_stubs))
+scan_input = resolve("app.agents.guardian", "scan_input")
+agents_status = resolve("app.agents.guardian", "agents_status")
+brief_text = resolve("app.brief", "brief_text")
+ask_brief = resolve("app.brief", "ask")
+brief_queue = resolve("app.brief", "queue")
+answer_cluster = resolve("app.brief", "answer")
+brief_broadcasts = resolve("app.brief", "broadcasts")
+check_rubric = resolve("app.agents.checker", "check_rubric")
+viva_turn = resolve("app.agents.examiner", "viva_turn")
+max_turn = resolve("app.agents.examiner", "max_turn")
+rephrase_turn = resolve("app.agents.examiner", "rephrase")
+class_heatmap = resolve("app.heatmap", "heatmap")
+synthesize = resolve("app.tts", "synthesize")
 
 app = FastAPI(title="Viva API")
 
@@ -143,13 +121,16 @@ def submit(
     rubric = _read_text(rubric_file, rubric_text, "rubric")
     clean_text = scan["text"]
 
+    criteria = check_rubric(extract_rubric(rubric), clean_text)
+    concepts = seed_statuses(extract_concepts(clean_text), criteria)
+
     session = create_session()
     session.update(
         student=student,
         module=MODULE,
         mode="viva",
-        concepts=extract_concepts(clean_text),
-        rubric=check_rubric(extract_rubric(rubric), clean_text),
+        concepts=concepts,
+        rubric=criteria,
         viva_transcript=[],
         max_transcript=[],
         flags=scan["flags"],

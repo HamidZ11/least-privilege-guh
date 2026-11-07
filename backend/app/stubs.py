@@ -4,9 +4,33 @@ main.py uses the real function as soon as its module exists, and GET /health
 lists whatever is still stubbed here. Nothing in this file is real analysis.
 """
 
+import importlib
+import logging
 import re
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+using_stubs: list[str] = []
+
+
+def resolve(module: str, name: str) -> Callable[..., Any]:
+    """Return the real function if its module exists yet, else the stub here."""
+    try:
+        return getattr(importlib.import_module(module), name)
+    except ModuleNotFoundError as error:
+        if error.name != module:
+            raise  # the module exists but is broken, which must not be hidden
+    except AttributeError:
+        pass
+    label = f"{module}.{name}"
+    if label not in using_stubs:
+        using_stubs.append(label)
+        logger.warning("Using a stub for %s", label)
+    return globals()[name]
+
 
 _INJECTION = re.compile(r"<!--.*?-->", re.DOTALL)
 
@@ -146,28 +170,6 @@ def answer(cluster_id: str, text: str) -> dict[str, Any] | None:
 def broadcasts(student: str) -> list[dict[str, Any]]:
     return [
         c for c in _clusters if c["status"] == "answered" and student in c["students"]
-    ]
-
-
-# reader.py (Hamid)
-def extract_concepts(text: str) -> list[dict[str, Any]]:
-    return [
-        {
-            "id": concept_id,
-            "name": name,
-            "claim": f"Stub claim about {name.lower()}.",
-            "quote": _sentence_with(text, keyword),
-            "status": "untested",
-            "confidence": 0.5,
-        }
-        for concept_id, name, _, keyword in _CONCEPTS
-    ]
-
-
-def extract_rubric(text: str) -> list[dict[str, Any]]:
-    return [
-        {"id": f"r{index}", "criterion": row[0], "weight": row[1]}
-        for index, row in enumerate(_RUBRIC, start=1)
     ]
 
 
