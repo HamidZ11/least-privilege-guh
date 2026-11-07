@@ -117,8 +117,9 @@ export default function Brief() {
               ) : (
                 <>
                   <p className="text-ink2">The brief doesn&apos;t say, so I won&apos;t guess.</p>
-                  <p className="flex items-center gap-2 rounded bg-[#f5f5f5] px-3 py-2 text-sm">
-                    <Users size={14} /> Sent to your module leader. <span className="tnum font-medium">{e.a.cluster_size} students</span> asked this
+                  <p className="flex items-start gap-2 rounded bg-[#f5f5f5] px-3 py-2 text-sm">
+                    <Users size={14} className="mt-1 shrink-0" aria-hidden="true" />
+                    <span className="min-w-0">Sent to your module leader · <span className="tnum font-medium">{e.a.cluster_size} {e.a.cluster_size === 1 ? "student" : "students"}</span> asked this</span>
                   </p>
                 </>
               )}
