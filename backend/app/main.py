@@ -1,6 +1,8 @@
 """App entry point and the Viva API (build prompt, section 7)."""
 
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Any
 
@@ -42,6 +44,11 @@ class_heatmap = resolve("app.heatmap", "heatmap")
 synthesize = resolve("app.tts", "synthesize")
 
 app = FastAPI(title="Viva API")
+
+from app.seed import seed_demo_sessions
+
+if os.getenv("SEED_DEMO", "1") == "1":
+    seed_demo_sessions()
 
 app.add_middleware(
     CORSMiddleware,
@@ -108,6 +115,10 @@ def _read_text(file: UploadFile | None, text: str | None, label: str) -> str:
     return content
 
 
+def _check_work(rubric: str, clean_text: str) -> list[dict[str, Any]]:
+    return check_rubric(extract_rubric(rubric), clean_text)
+
+
 api = APIRouter(prefix="/api")
 
 
@@ -123,9 +134,10 @@ def submit(
     rubric = _read_text(rubric_file, rubric_text, "rubric")
     clean_text = scan["text"]
 
-    concepts = extract_concepts(clean_text)
-    quotes = [concept["quote"] for concept in concepts]
-    criteria = check_rubric(extract_rubric(rubric), clean_text, quotes=quotes)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        concepts_job = pool.submit(extract_concepts, clean_text)
+        criteria_job = pool.submit(_check_work, rubric, clean_text)
+        concepts, criteria = concepts_job.result(), criteria_job.result()
     concepts = seed_statuses(concepts, criteria)
 
     session = create_session()

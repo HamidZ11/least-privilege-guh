@@ -12,7 +12,7 @@ from typing import Annotated, Any, Literal, TypeVar
 import anthropic
 from pydantic import AfterValidator, BaseModel, ConfigDict, ValidationError
 
-from app.llm import LLMError, ask_claude
+from app.llm import MAX_TOKENS, LLMError, ask_claude
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,8 @@ class Agent:
     system_prompt = ""
     output_model: type[BaseModel] | None = None
     model: str | None = None  # None uses MODEL from .env
+    max_tokens: int = MAX_TOKENS
+    effort: str | None = None  # None uses the model's default
 
     def run(self, input: str) -> dict:
         schema = (
@@ -118,6 +120,8 @@ class Agent:
             [{"role": "user", "content": input}],
             schema,
             model=self.model,
+            max_tokens=self.max_tokens,
+            effort=self.effort,
         )
         if self.output_model:
             try:

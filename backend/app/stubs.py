@@ -208,7 +208,7 @@ def extract_rubric(text: str) -> list[dict[str, Any]]:
 
 # checker.py (Hamid)
 def check_rubric(
-    criteria: list[dict[str, Any]], work_text: str, quotes: list[str] | None = None
+    criteria: list[dict[str, Any]], work_text: str
 ) -> list[dict[str, Any]]:
     by_name = {row[0]: row for row in _RUBRIC}
     results = []
