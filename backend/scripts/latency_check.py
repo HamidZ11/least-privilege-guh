@@ -1,7 +1,9 @@
 """Times the demo path against a running backend (default http://localhost:8000).
-Run from backend/: .venv/bin/python scripts/latency_check.py [runs]
+Run from backend/: .venv/bin/python scripts/latency_check.py [runs] [--base-url URL]
 Anything over 6s is marked SLOW. Stub endpoints are listed from /health, not failed."""
 
+import argparse
+import os
 import statistics
 import sys
 import time
@@ -9,10 +11,14 @@ from pathlib import Path
 
 import httpx
 
-BASE = "http://localhost:8000"
+BASE = os.getenv("BASE_URL", "http://localhost:8000")
 SAMPLES = Path(__file__).resolve().parents[1] / "app" / "agents" / "samples"
 SLOW_SECONDS = 6.0
-RUNS = int(sys.argv[1]) if len(sys.argv) > 1 else 3
+_args = argparse.ArgumentParser()
+_args.add_argument("runs", nargs="?", type=int, default=3)
+_args.add_argument("--base-url", default=BASE, help="or set BASE_URL (default http://localhost:8000)")
+_parsed = _args.parse_args()
+BASE, RUNS = _parsed.base_url, _parsed.runs
 
 MAX_CORRECTION = (
     "A large sample doesn't prove causation. It reduces sampling error, but the study "

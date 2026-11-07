@@ -36,7 +36,7 @@ export default function Escalations() {
               <span className="tnum flex items-center gap-1.5 rounded-full bg-[#efefec] px-2.5 py-1 text-xs font-medium"><Users size={12} /> {c.students.length} students</span>
             </div>
             <ul className="mb-4 space-y-1 border-l-2 border-line pl-3 text-ink2">
-              {c.questions.slice(0, 4).map((q) => <li key={q}>“{q}”</li>)}
+              {c.questions.slice(0, 4).map((q, i) => <li key={`${q}-${i}`}>“{q}”</li>)}
               {c.questions.length > 4 && <li className="text-xs text-ink3">+ {c.questions.length - 4} more</li>}
             </ul>
             {c.status === "answered" ? (
