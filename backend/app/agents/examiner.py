@@ -151,11 +151,24 @@ def _say(session: dict[str, Any], transcript: str, role: str, text: str, concept
     session[transcript].append({"role": role, "text": safe_text, "concept_id": concept_id})
 
 
-def _scan_student_text(session: dict[str, Any], text: str, transcript: str) -> str:
+def _scan_student_text(text: str) -> tuple[str, list[dict[str, Any]]]:
     scan = scan_input(text)
-    for flag in scan["flags"]:
-        session["flags"].append({**flag, "transcript_index": len(session[transcript])})
-    return scan["text"].strip() or "[Removed by the Guardian]"
+    return scan["text"].strip() or "[Removed by the Guardian]", scan["flags"]
+
+
+def _store_student_turn(
+    session: dict[str, Any],
+    transcript: str,
+    text: str,
+    flags: list[dict[str, Any]],
+    concept_id: str,
+) -> int:
+    """Save a turn and its flags. Called only once the Marker has succeeded, so
+    a failed call leaves nothing behind and the student can simply resend."""
+    index = len(session[transcript])
+    session["flags"].extend({**flag, "transcript_index": index} for flag in flags)
+    session[transcript].append({"role": "student", "text": text, "concept_id": concept_id})
+    return index
 
 
 def _record_flag(session: dict[str, Any], result: dict[str, Any], index: int) -> None:
@@ -250,11 +263,10 @@ def viva_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     concept = _concept(session, session["current_concept_id"])
     transcript = session["viva_transcript"]
     question = transcript[-1]["text"]
-    answer = _scan_student_text(session, text, "viva_transcript")
-    transcript.append({"role": "student", "text": answer, "concept_id": concept["id"]})
-
+    answer, flags = _scan_student_text(text)
     result = score(concept, question, answer, session["work_text"])
-    _apply_mark(session, concept, result, len(transcript) - 1)
+    index = _store_student_turn(session, "viva_transcript", answer, flags, concept["id"])
+    _apply_mark(session, concept, result, index)
 
     if sum(turn["role"] == "student" for turn in transcript) >= MAX_VIVA_TURNS:
         return _recap(session)
@@ -306,12 +318,12 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
 
     transcript = session["max_transcript"]
     question = transcript[-1]["text"]
-    reply = _scan_student_text(session, text, "max_transcript")
-    transcript.append({"role": "student", "text": reply, "concept_id": concept["id"]})
+    reply, flags = _scan_student_text(text)
     result = score(concept, question, reply, session["work_text"])
+    index = _store_student_turn(session, "max_transcript", reply, flags, concept["id"])
 
     if result["status"] != "green":
-        _record_flag(session, result, len(transcript) - 1)
+        _record_flag(session, result, index)
         if result["status"] == "amber":
             concept["status"] = "amber"
         line = _write(
@@ -326,7 +338,7 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
         _say(session, "max_transcript", "max", line, concept["id"])
         return session
 
-    _apply_mark(session, concept, result, len(transcript) - 1)
+    _apply_mark(session, concept, result, index)
     line = _write(
         MaxCorrected(),
         "max_says",
