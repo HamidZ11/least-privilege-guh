@@ -6,7 +6,7 @@ The same underlying ambiguity shares one cluster. A student is counted once.
 
 import hashlib
 import re
-from app.agents.guardian import record_event, scan_input, should_escalate
+from app.agents.guardian import record_call, scan_input, should_escalate
 
 _REFERENCES = "cl-word-limit-references"
 _GAP = "The brief does not say whether the reference list counts toward the 1500 words."
@@ -30,11 +30,25 @@ QUOTES = {
 
 ANSWER_CONFIDENCE = 0.93
 ESCALATE_CONFIDENCE = 0.22
-SEED_QUESTION = "Does the 1500-word limit include references?"
-SEED_STUDENTS = [f"Demo Student {number:02d}" for number in range(1, 14)]
+CLUSTER_SUMMARY = "Does the word limit include references?"
+SEED = [
+    ("Demo Student 01", "Does the 1500-word limit include references?"),
+    ("Demo Student 02", "Is the reference list counted in the word count?"),
+    ("Demo Student 03", "do refs count towards 1500 words"),
+    ("Demo Student 04", "Are citations included in the word limit?"),
+    ("Demo Student 05", "Is the bibliography part of the 1500?"),
+    ("Demo Student 06", "Does the word count include in-text citations?"),
+    ("Demo Student 07", "Will my references push me over 1500?"),
+    ("Demo Student 08", "word limit — refs in or out?"),
+    ("Demo Student 09", "Is the 1500 excluding the reference section?"),
+    ("Demo Student 10", "Do quotes and references count as words?"),
+    ("Demo Student 11", "Should I count my bibliography?"),
+    ("Demo Student 12", "1500 words: with or without references?"),
+    ("Demo Student 13", "Does the reference page count?"),
+]
 
 _REF = re.compile(
-    r"\b(?:references?|bibliography|works cited|reference list|citations?)\b",
+    r"\b(?:references?|refs|bibliography|works cited|reference list|reference section|reference page|citations?)\b",
     re.IGNORECASE,
 )
 _WORD_LIMIT = re.compile(r"\b(?:words?|word\s*count|word\s*limit|1500)\b", re.IGNORECASE)
@@ -162,7 +176,7 @@ def _add(cluster: dict, student: str, question: str) -> None:
 
 
 def _answered(quote: str) -> dict:
-    record_event("Guardian", "passed", "Brief answer quoted from the assignment brief")
+    record_call("Guardian", "passed", "Brief answer quoted from the assignment brief")
     return {
         "status": "answered",
         "answer": quote,
@@ -174,7 +188,7 @@ def _answered(quote: str) -> dict:
 
 
 def _escalated(cluster: dict) -> dict:
-    record_event(
+    record_call(
         "Guardian",
         "escalated",
         "Brief question escalated; the brief does not support an answer",
@@ -192,13 +206,9 @@ def _escalated(cluster: dict) -> dict:
 def reset_brief() -> None:
     """Restore the 13 seeded students. Does not write a guardian event."""
     _clusters.clear()
-    cluster = _ensure(
-        _REFERENCES,
-        "Does the 1500-word limit include references?",
-        _GAP,
-    )
-    cluster["questions"] = [SEED_QUESTION for _student in SEED_STUDENTS]
-    cluster["students"] = list(SEED_STUDENTS)
+    cluster = _ensure(_REFERENCES, CLUSTER_SUMMARY, _GAP)
+    cluster["questions"] = [question for _student, question in SEED]
+    cluster["students"] = [student for student, _question in SEED]
     cluster["status"] = "open"
     cluster["lecturer_answer"] = None
 
@@ -220,11 +230,7 @@ def ask(student: str, question: str) -> dict:
         return _answered(quote)
 
     if intent == "word_limit_references":
-        cluster = _ensure(
-            _REFERENCES,
-            "Does the 1500-word limit include references?",
-            _GAP,
-        )
+        cluster = _ensure(_REFERENCES, CLUSTER_SUMMARY, _GAP)
     elif cleaned:
         digest = hashlib.sha256(_normal(cleaned).encode()).hexdigest()[:10]
         cluster = _ensure(f"cl-{digest}", cleaned[:120], _GENERIC_GAP)
@@ -250,7 +256,7 @@ def answer(cluster_id: str, text: str) -> dict | None:
         return _public(cluster)
     cluster["status"] = "answered"
     cluster["lecturer_answer"] = clarification
-    record_event("Guardian", "passed", "Lecturer clarification recorded for a brief cluster")
+    record_call("Guardian", "passed", "Lecturer clarification recorded for a brief cluster")
     return _public(cluster)
 
 
