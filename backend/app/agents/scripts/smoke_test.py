@@ -215,10 +215,12 @@ def main():
         answered = concept(value, asked.get("id"))
         require(answered and answered["status"] == "red", "confidently wrong viva answer was not red")
         require(value["mode"] == "teach_max", "red viva answer did not hand over to Max")
-        # The UI offers Max after the viva, so the viva moves on to its next question.
-        require(value["current_concept_id"] != asked["id"], "viva did not move to the next concept")
-        require(value["viva_transcript"][-1]["role"] == "examiner", "viva did not ask its next question")
-        return "wrong answer = red; mode switched to teach_max; viva asked its next question"
+        # Max opens on the red concept and the viva moves on to its next question.
+        max_turn = value["max_transcript"][-1]
+        require(max_turn["role"] == "max" and max_turn["concept_id"] == asked["id"], "Max did not open on the red concept")
+        viva_turn = value["viva_transcript"][-1]
+        require(viva_turn["role"] == "examiner" and viva_turn["concept_id"] != asked["id"], "viva did not ask its next question")
+        return "wrong answer = red; Max opened on it; viva asked its next question"
 
     latest = test.step("viva wrong answer", "POST", turn_path("viva"), red_answer, {"text": WRONG_ANSWER})
     # Continue through corrections/questions to recap, with a strict bound on calls.
