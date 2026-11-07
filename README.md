@@ -1,8 +1,8 @@
-# Viva
+# Socratic
 
 **Don't ban AI. Check understanding.**
 
-Viva checks whether students can explain the ideas in their own coursework through rubric feedback, practice and a short viva. Lecturers see quoted evidence and areas to discuss, then make the final academic decision.
+Socratic checks whether students can explain the ideas in their own coursework through rubric feedback, practice and a short viva. Lecturers see quoted evidence and areas to discuss, then make the final academic decision.
 
 Built at [GreatUniHack 2026](https://greatunihack-2026.devpost.com), University of Manchester, on 7 November 2026 for Reply's **AI on Campus** challenge.
 

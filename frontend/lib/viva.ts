@@ -10,7 +10,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
 export const OFFLINE = process.env.NEXT_PUBLIC_DEMO_OFFLINE === "1";
-export const FRIENDLY_ERROR = "Couldn't reach Viva. Try again.";
+export const FRIENDLY_ERROR = "Couldn't reach Socratic. Try again.";
 export class ApiError extends Error {}
 
 /** Real API call. Never silently falls back to fixtures; only NEXT_PUBLIC_DEMO_OFFLINE=1 does. */
