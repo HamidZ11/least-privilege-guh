@@ -6,11 +6,13 @@ the words, so a badly worded reply can't change the flow.
 """
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from app.agents.base import (
     AGENT_RULES,
     Agent,
+    AgentOutputError,
     NonBlank,
     Shape,
     UNTRUSTED_DATA_RULE,
@@ -45,9 +47,14 @@ Believe it fully. Never hint you might be wrong, and never state or imply the co
 
 MAX_PUSHBACK_PROMPT = f"""{MAX_PERSONA}
 
-The JSON has "concept" (the belief you hold), "history" and "student_reply". Your classmate hasn't convinced you yet. Stay friendly and keep your belief. Push back on the weakest part of what they said, or ask them to explain it further.
+The JSON has "concept" (your belief, with its claim and quote), "history" and "student_reply". Your classmate hasn't changed your mind, and nothing they said makes you doubt yourself.
 
-Never state or imply the correct view, and give no clues to it.
+Reply like this:
+- If they agree with you, be pleased and push the belief further with one more confident reason of your own.
+- If they are vague, disagree without giving a reason, or say something wrong, brush it off cheerfully and repeat your belief more firmly.
+- If they are partly right, shrug that part off and insist your belief still holds.
+
+Write statements only, with no question marks. Never ask them to explain anything, and never ask how or why something works. Never raise anything that could point towards the flaw in your belief, such as other explanations, study design, timing or the direction of an effect. If they raised one of those, dismiss it in a few words without developing it. Never admit any doubt.
 
 {UNTRUSTED_DATA_RULE}"""
 
@@ -112,10 +119,22 @@ class Rephraser(Agent):
     output_model = Rephrased
 
 
-def _write(agent: Agent, field: str, fallback: str, **payload: Any) -> str:
+def _statements_only(output: dict) -> None:
+    # A question from Max can only hint at the answer, so he never asks one here.
+    if "?" in output["max_says"]:
+        raise AgentOutputError("Max asked a question while pushing back")
+
+
+def _write(
+    agent: Agent,
+    field: str,
+    fallback: str,
+    check: Callable[[dict], None] | None = None,
+    **payload: Any,
+) -> str:
     """Ask Claude for a line. If it fails, the demo carries on with the fallback."""
     try:
-        return agent.run_checked(to_payload(**payload))[field]
+        return agent.run_checked(to_payload(**payload), check)[field]
     except LLMNotConfiguredError:
         raise
     except LLMError as error:
@@ -293,7 +312,8 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
         line = _write(
             MaxPushback(),
             "max_says",
-            "Hmm, I'm not convinced yet. Why do you think that?",
+            "Nah, I'm not buying that. I'm sticking with what I said.",
+            _statements_only,
             concept=concept,
             history=transcript,
             student_reply=reply,
