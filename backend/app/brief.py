@@ -74,6 +74,19 @@ _WEIGHT = re.compile(
     re.IGNORECASE,
 )
 
+# Vocabulary of a real question about this assignment. Anything else, such as a
+# greeting or "does this box work", gets a fixed reply and never joins a cluster.
+_ON_TOPIC = re.compile(
+    r"\b(?:assignment|brief|essay|evaluat\w*|critical|word\w*|1500|sources?|ref\w*|cit\w*|bibliog\w*|"
+    r"deadline|due|submi\w*|moodle|late|extension|mark\w*|grade\w*|weight\w*|percent\w*|module|"
+    r"learning outcomes?|lo[123]|criteria|rubric|stud(?:y|ies)|social media|anxiety|adolescen\w*|teenagers?|"
+    r"topic|structure|format\w*|length|long|short|pages?|title|plagiar\w*|group|individual|cmp\s*2045|"
+    r"academic|peer.?review\w*|journal\w*|textbook\w*|wikipedia|appendi\w*|footnote\w*|font|spacing|"
+    r"harvard|apa|write|writing|introduction|conclusion|abstract|quot\w*|feedback|resubmi\w*|penalt\w*)\b",
+    re.IGNORECASE,
+)
+OFF_TOPIC_REPLY = "I can only answer questions about this assignment brief."
+
 _clusters: dict[str, dict] = {}
 
 
@@ -175,6 +188,18 @@ def _answered(quote: str) -> dict:
     }
 
 
+def _off_topic() -> dict:
+    record_call("Guardian", "passed", "Question outside the brief got the fixed reply")
+    return {
+        "status": "answered",
+        "answer": OFF_TOPIC_REPLY,
+        "citation": None,
+        "confidence": 1.0,
+        "cluster_id": None,
+        "cluster_size": 0,
+    }
+
+
 def _escalated(cluster: dict) -> dict:
     record_call(
         "Guardian",
@@ -209,6 +234,8 @@ def ask(student: str, question: str) -> dict:
         student = ""
     cleaned = scan_input(question)["text"].strip()
     intent = _intent(cleaned) if cleaned else "unknown"
+    if cleaned and intent == "unknown" and not _ON_TOPIC.search(cleaned):
+        return _off_topic()
     quote = QUOTES.get(intent)
     if (
         quote
