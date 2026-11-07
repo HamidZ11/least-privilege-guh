@@ -25,5 +25,5 @@ class Settings:
 settings = Settings(
     anthropic_api_key=_env("ANTHROPIC_API_KEY"),
     elevenlabs_api_key=_env("ELEVENLABS_API_KEY"),
-    claude_model=_env("CLAUDE_MODEL") or "claude-haiku-4-5",
+    claude_model=_env("MODEL") or _env("CLAUDE_MODEL") or "claude-haiku-5-5",
 )
