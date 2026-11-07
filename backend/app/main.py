@@ -1,8 +1,10 @@
 """App entry point and the Viva API (build prompt, section 7)."""
 
+import asyncio
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
@@ -22,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 MODULE = "CMP2045"
 MAX_UPLOAD_BYTES = 2_000_000
+MAX_TURN_TIMEOUT_SECONDS = 7.0  # leave time for HTTP transport within the 8s demo budget
 SESSION_FIELDS = (
     "id", "student", "module", "mode", "concepts", "rubric", "viva_transcript",
     "max_transcript", "flags", "current_concept_id", "viva_started_at", "revise",
@@ -92,10 +95,12 @@ def _public(session: dict[str, Any]) -> dict[str, Any]:
     return {field: session[field] for field in SESSION_FIELDS}
 
 
-def _session_or_404(session_id: str) -> dict[str, Any]:
+def _session_or_404(session_id: str, *, for_turn: bool = False) -> dict[str, Any]:
     session = get_session(session_id)
     if session is None or "student" not in session:
         raise HTTPException(404, "Session not found")
+    if for_turn and session.get("_max_in_flight"):
+        raise HTTPException(409, "Max is still replying. Please wait before sending another answer.")
     return session
 
 
@@ -165,20 +170,34 @@ def read_session(session_id: str) -> dict[str, Any]:
 
 @api.post("/session/{session_id}/viva")
 def viva(session_id: str, body: TurnRequest) -> dict[str, Any]:
-    session = _session_or_404(session_id)
+    session = _session_or_404(session_id, for_turn=True)
     if session["viva_started_at"] is None:
         session["viva_started_at"] = datetime.now(timezone.utc).isoformat()
     return _public(viva_turn(session, body.text))
 
 
 @api.post("/session/{session_id}/max")
-def teach_max(session_id: str, body: TurnRequest) -> dict[str, Any]:
-    return _public(max_turn(_session_or_404(session_id), body.text))
+async def teach_max(session_id: str, body: TurnRequest) -> dict[str, Any]:
+    session = _session_or_404(session_id, for_turn=True)
+    working = deepcopy(session)
+    session["_max_in_flight"] = True
+    try:
+        # A timed-out thread cannot be stopped, so it only mutates a private copy.
+        result = await asyncio.wait_for(
+            asyncio.to_thread(max_turn, working, body.text),
+            timeout=MAX_TURN_TIMEOUT_SECONDS,
+        )
+        session.update(result)
+        return _public(session)
+    except TimeoutError:
+        raise HTTPException(503, "Max is taking too long. Your answer was not saved; please try again.") from None
+    finally:
+        session.pop("_max_in_flight", None)
 
 
 @api.post("/session/{session_id}/rephrase")
 def rephrase(session_id: str, body: RephraseRequest) -> dict[str, Any]:
-    return _public(rephrase_turn(_session_or_404(session_id), body.mode))
+    return _public(rephrase_turn(_session_or_404(session_id, for_turn=True), body.mode))
 
 
 @api.get("/brief")
