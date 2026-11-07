@@ -9,6 +9,7 @@ from app.agents.base import (
     NonBlank,
     Shape,
     UNTRUSTED_DATA_RULE,
+    clamp_confidence,
     normalise,
     require_text,
     require_unique_ids,
@@ -101,7 +102,7 @@ def extract_concepts(text: str) -> list[dict[str, Any]]:
         {
             **concept,
             "status": "untested",
-            "confidence": min(max(concept["confidence"], 0.0), 1.0),
+            "confidence": clamp_confidence(concept["confidence"]),
         }
         for concept in output["concepts"]
     ]

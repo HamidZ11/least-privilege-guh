@@ -72,7 +72,7 @@ MAX_VIVA_TURNS = 6
 REVISE_COUNT = 3
 STATUS_RANK = {"red": 0, "amber": 1, "untested": 2, "green": 3}
 
-score = resolve("app.agents.marker", "score")
+score = resolve("app.agents.marker", "score", needs_key=True)
 scan_input = resolve("app.agents.guardian", "scan_input")
 check_output = resolve("app.agents.guardian", "check_output")
 
@@ -158,13 +158,17 @@ def _scan_student_text(session: dict[str, Any], text: str, transcript: str) -> s
     return scan["text"].strip() or "[Removed by the Guardian]"
 
 
+def _record_flag(session: dict[str, Any], result: dict[str, Any], index: int) -> None:
+    if result.get("flag"):
+        session["flags"].append({**result["flag"], "transcript_index": index})
+
+
 def _apply_mark(
     session: dict[str, Any], concept: dict[str, Any], result: dict[str, Any], index: int
 ) -> None:
     concept["status"] = result["status"]
     concept["confidence"] = result["confidence"]
-    if result.get("flag"):
-        session["flags"].append({**result["flag"], "transcript_index": index})
+    _record_flag(session, result, index)
 
 
 # Viva
@@ -307,6 +311,7 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     result = score(concept, question, reply, session["work_text"])
 
     if result["status"] != "green":
+        _record_flag(session, result, len(transcript) - 1)
         if result["status"] == "amber":
             concept["status"] = "amber"
         line = _write(

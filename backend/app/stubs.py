@@ -206,9 +206,9 @@ def extract_rubric(text: str) -> list[dict[str, Any]]:
     ]
 
 
-# checker.py (Ebube)
+# checker.py (Hamid)
 def check_rubric(
-    criteria: list[dict[str, Any]], work_text: str
+    criteria: list[dict[str, Any]], work_text: str, quotes: list[str] | None = None
 ) -> list[dict[str, Any]]:
     by_name = {row[0]: row for row in _RUBRIC}
     results = []
@@ -226,7 +226,7 @@ def check_rubric(
     return results
 
 
-# marker.py (Ebube)
+# marker.py (Hamid)
 def score(
     concept: dict[str, Any], question: str, answer: str, work_text: str
 ) -> dict[str, Any]:
