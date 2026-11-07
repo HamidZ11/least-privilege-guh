@@ -56,24 +56,30 @@ def ask_claude(
     messages: list[dict[str, Any]],
     json_schema: dict[str, Any] | None = None,
     model: str | None = None,
+    max_tokens: int = MAX_TOKENS,
+    effort: str | None = None,
 ) -> str | dict[str, Any]:
     """Return Claude's reply as text, or as a dict if json_schema is given.
 
     json_schema must be an object schema with "required" and
-    "additionalProperties": false. model overrides MODEL for this call.
-    Raises LLMError on failure.
+    "additionalProperties": false. model overrides MODEL for this call, and
+    effort sets how hard the model thinks, which is the main speed lever.
+    Thinking counts towards max_tokens. Raises LLMError on failure.
     """
     client = _client()
     request: dict[str, Any] = {
         "model": model or settings.claude_model,
-        "max_tokens": MAX_TOKENS,
+        "max_tokens": max_tokens,
         "system": system,
         "messages": messages,
     }
+    output_config: dict[str, Any] = {}
     if json_schema is not None:
-        request["output_config"] = {
-            "format": {"type": "json_schema", "schema": json_schema}
-        }
+        output_config["format"] = {"type": "json_schema", "schema": json_schema}
+    if effort is not None:
+        output_config["effort"] = effort
+    if output_config:
+        request["output_config"] = output_config
 
     # Logs below record error types only, never request contents or keys.
     for attempt in range(1, MAX_ATTEMPTS + 1):

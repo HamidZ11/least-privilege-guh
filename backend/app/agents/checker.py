@@ -3,6 +3,7 @@
 The rules for causal conclusions and counting sources come from Ebube's draft.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from app.agents.base import (
@@ -22,9 +23,9 @@ from app.config import settings
 
 SYSTEM_PROMPT = f"""You are the Checker for a learning-check tool at a UK university. You compare a student's work with the module's marking criteria. This is a learning check: never give a mark, grade or percentage.
 
-The JSON has "criteria", "work" and "reader_quotes" (sentences from the work already picked out as important).
+The JSON has "criterion" (one marking criterion), "work" and "reader_quotes" (sentences from the work already picked out as important, which may be empty).
 
-Return one result per criterion, using its id:
+Return:
 - status:
   - green: clearly met.
   - amber: partly met, meaning present but flawed, thin or inaccurate.
@@ -34,10 +35,10 @@ Return one result per criterion, using its id:
 - confidence: from 0 to 1, how sure you are of the status.
 
 Apply these rules:
-- If a criterion asks whether conclusions follow from the evidence, and the central conclusion is a causal claim such as "proves" or "causes" drawn from observational or cross-sectional data, it is red, even if the work also names strengths or limitations. Say what it does well in the gap_note.
-- If a criterion states a minimum, such as a number of sources, count for yourself from the citations in the work. Below the minimum is red.
-- If a criterion is about explaining methods and the work explains them but makes a mistaken judgement about one of them, it is amber.
-- If a criterion is about presentation and the work is clearly structured and readable but its referencing is incomplete or missing, it is amber.
+- If the criterion asks whether conclusions follow from the evidence, and the central conclusion is a causal claim such as "proves" or "causes" drawn from observational or cross-sectional data, it is red, even if the work also names strengths or limitations. Say what it does well in the gap_note.
+- If the criterion states a minimum, such as a number of sources, count for yourself from the citations in the work. Below the minimum is red.
+- If the criterion is about explaining methods and the work explains them but makes a mistaken judgement about one of them, it is amber.
+- If the criterion is about presentation and the work is clearly structured and readable but its referencing is incomplete or missing, it is amber.
 
 {AGENT_RULES}
 
@@ -45,22 +46,40 @@ Apply these rules:
 
 
 class CriterionCheck(Shape):
-    id: NonBlank
     status: Status
     gap_note: NonBlank
     quote: str | None
     confidence: float
 
 
-class CheckReport(Shape):
-    results: list[CriterionCheck]
-
-
 class CheckerAgent(Agent):
     name = "checker"
     system_prompt = SYSTEM_PROMPT
-    output_model = CheckReport
+    output_model = CriterionCheck
     model = settings.judge_model
+
+
+def _check_one(
+    criterion: dict[str, Any], work_text: str, quotes: list[str]
+) -> dict[str, Any]:
+    normalised_work = normalise(work_text)
+
+    def check(result: dict) -> None:
+        quote = result["quote"]
+        if quote is not None and normalise(quote) not in normalised_work:
+            raise AgentOutputError(f"{criterion['id']} quotes text that isn't in the work")
+
+    payload = to_payload(criterion=criterion, work=work_text, reader_quotes=quotes)
+    result = CheckerAgent().run_checked(payload, check)
+    return {
+        "id": criterion["id"],
+        "criterion": criterion["criterion"],
+        "weight": criterion["weight"],
+        "status": result["status"],
+        "gap_note": result["gap_note"],
+        "quote": result["quote"],
+        "confidence": clamp_confidence(result["confidence"]),
+    }
 
 
 def check_rubric(
@@ -68,38 +87,12 @@ def check_rubric(
 ) -> list[dict[str, Any]]:
     """Return contract RubricCriterion dicts, in the same order as criteria.
 
-    quotes are the Reader's concept quotes. Passing them lets a criterion share
-    a quote with a concept, which is how seed_statuses links the two. Raises
-    ValueError for bad arguments and LLMError if Claude fails.
+    Each criterion is its own concurrent call, so the wait is the slowest one.
+    quotes are the Reader's concept quotes, if already known. Raises ValueError
+    for bad arguments and LLMError if Claude fails.
     """
     if not criteria:
         raise ValueError("criteria must not be empty")
     require_text(work_text, "work_text")
-    normalised_work = normalise(work_text)
-    expected_ids = {criterion["id"] for criterion in criteria}
-
-    def check(report: dict) -> None:
-        results = report["results"]
-        if sorted(result["id"] for result in results) != sorted(expected_ids):
-            raise AgentOutputError("checker did not return each criterion exactly once")
-        for result in results:
-            quote = result["quote"]
-            if quote is not None and normalise(quote) not in normalised_work:
-                raise AgentOutputError(f"{result['id']} quotes text that isn't in the work")
-
-    report = CheckerAgent().run_checked(
-        to_payload(criteria=criteria, work=work_text, reader_quotes=quotes or []), check
-    )
-    by_id = {result["id"]: result for result in report["results"]}
-    return [
-        {
-            "id": criterion["id"],
-            "criterion": criterion["criterion"],
-            "weight": criterion["weight"],
-            "status": by_id[criterion["id"]]["status"],
-            "gap_note": by_id[criterion["id"]]["gap_note"],
-            "quote": by_id[criterion["id"]]["quote"],
-            "confidence": clamp_confidence(by_id[criterion["id"]]["confidence"]),
-        }
-        for criterion in criteria
-    ]
+    with ThreadPoolExecutor(max_workers=len(criteria)) as pool:
+        return list(pool.map(lambda c: _check_one(c, work_text, quotes or []), criteria))
