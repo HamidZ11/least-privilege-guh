@@ -12,7 +12,8 @@ from typing import Annotated, Any, Literal, TypeVar
 import anthropic
 from pydantic import AfterValidator, BaseModel, ConfigDict, ValidationError
 
-from app.llm import MAX_TOKENS, LLMError, ask_claude
+from app.agents.guardian import note_agent
+from app.llm import LLMError, ask_claude
 
 logger = logging.getLogger(__name__)
 
@@ -108,43 +109,62 @@ class Agent:
     system_prompt = ""
     output_model: type[BaseModel] | None = None
     model: str | None = None  # None uses MODEL from .env
-    max_tokens: int = MAX_TOKENS
-    effort: str | None = None  # None uses the model's default
+    max_tokens: int = 1000  # short verdicts/dialogue; Reader overrides for lists
+    effort: str | None = "low"
 
-    def run(self, input: str) -> dict:
+    def run(self, input: str, *, validation_error: str | None = None) -> dict:
         schema = (
             anthropic.transform_schema(self.output_model) if self.output_model else None
         )
-        output = ask_claude(
-            self.system_prompt,
-            [{"role": "user", "content": input}],
-            schema,
-            model=self.model,
-            max_tokens=self.max_tokens,
-            effort=self.effort,
+        name = (
+            "Examiner" if self.name.startswith(("examiner_", "max_")) or self.name == "rephrase"
+            else self.name.split("_", 1)[0].capitalize()
         )
-        if self.output_model:
-            try:
-                output = self.output_model.model_validate(output).model_dump()
-            except ValidationError as error:
-                raise AgentOutputError(
-                    f"{self.name} returned the wrong shape: {_summarise(error)}"
-                ) from None
+        system_prompt = self.system_prompt
+        if validation_error:
+            system_prompt += (
+                f"\nYour previous response failed validation: {validation_error}\n"
+                "Correct that problem. Copy evidence quotes as exact contiguous "
+                "text from their respective input fields, including punctuation. "
+                "Do not paraphrase or add punctuation inside a quote."
+            )
+        try:
+            output = ask_claude(
+                system_prompt,
+                [{"role": "user", "content": input}],
+                schema,
+                model=self.model,
+                max_tokens=self.max_tokens,
+                effort=self.effort,
+            )
+            if self.output_model:
+                try:
+                    output = self.output_model.model_validate(output).model_dump()
+                except ValidationError as error:
+                    raise AgentOutputError(
+                        f"{self.name} returned the wrong shape: {_summarise(error)}"
+                    ) from None
+        except LLMError as error:
+            note_agent(name, "escalated", f"{self.name}: {type(error).__name__}")
+            raise
+        note_agent(name, "passed", f"{self.name}: response received")
         return {"agent": self.name, "output": output}
 
     def run_checked(
         self, input: str, check: Callable[[dict], None] | None = None
     ) -> dict:
         """Return the output dict. check raises AgentOutputError to reject it."""
+        validation_error = None
         for attempt in range(1, MAX_OUTPUT_ATTEMPTS + 1):
             try:
-                output = self.run(input)["output"]
+                output = self.run(input, validation_error=validation_error)["output"]
                 if check:
                     check(output)
                 return output
             except AgentOutputError as error:
                 if attempt == MAX_OUTPUT_ATTEMPTS:
                     raise
+                validation_error = str(error)
                 logger.warning("%s output rejected, asking again: %s", self.name, error)
         raise AssertionError("unreachable")
 
