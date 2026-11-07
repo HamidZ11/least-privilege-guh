@@ -42,8 +42,11 @@ SEED = [
     ("Demo Student 13", "Does the reference page count?"),
 ]
 
-_REF = re.compile(
-    r"\b(?:references?|refs|bibliography|works cited|reference list|reference section|reference page|citations?)\b",
+# Prefixes, so typos such as "referance" and "refrences" still count.
+_REF = re.compile(r"\b(?:ref\w*|bibliog\w*|works cited|cit\w*)\b", re.IGNORECASE)
+# Things no line of the brief covers, so a word-count or source answer would be a guess.
+_NOT_COVERED = re.compile(
+    r"\b(?:appendi\w*|footnotes?|title page|cover page|abstract|tables?|figures?|headings?|quotes?|quotations?)\b",
     re.IGNORECASE,
 )
 _WORD_LIMIT = re.compile(r"\b(?:words?|word\s*count|word\s*limit|1500)\b", re.IGNORECASE)
@@ -93,6 +96,8 @@ def _intent(question: str) -> str:
     # answerable word-limit and source-count rules.
     if _REF.search(question) and (_WORD_LIMIT.search(question) or _INCLUDE.search(question)):
         return "word_limit_references"
+    if _NOT_COVERED.search(question) and (_WORD_LIMIT.search(question) or _SOURCE.search(question)):
+        return "unknown"
     if _SOURCE.search(question) and _HOW_MANY.search(question) and not _REF.search(question):
         return "source_count"
     if (
