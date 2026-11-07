@@ -60,7 +60,7 @@ export default function Overview() {
               {focus.map((c) => <li key={c.id}><Link href={c.href ?? "/teach"} className="flex items-center gap-2 hover:underline"><Dot status={c.status} /><span className="flex-1">{c.name}</span><ArrowRight size={14} className="text-ink3" /></Link></li>)}
             </ul>
           )}
-          <Link href="/teach" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#14284b]">Go to Teach Max <ArrowRight size={14} /></Link>
+          <Link href="/teach" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#111111]">Go to Teach Max <ArrowRight size={14} /></Link>
         </Card>
       </div>
     </>

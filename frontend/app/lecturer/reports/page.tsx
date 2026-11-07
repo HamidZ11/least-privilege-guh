@@ -64,31 +64,32 @@ export default function Reports() {
       {rows.length === 0 ? (
         <Empty icon={<Users size={18} />} title="No reports yet" body="When students submit work and complete their viva, their evidence appears here for you to review." />
       ) : (
-        <Card className="overflow-x-auto">
+        <Card className="overflow-x-auto !rounded-xl">
           <table className="w-full min-w-[560px] text-left">
-            <thead className="border-b border-line bg-[#f9fafc] text-xs uppercase tracking-wide text-ink3">
+            <thead className="border-b border-line bg-[#fafafa] text-xs text-ink2">
               <tr><th className="px-4 py-2.5 font-semibold">Student</th><th className="px-4 py-2.5 font-semibold">Rubric</th><th className="px-4 py-2.5 font-semibold">Viva</th><th className="px-4 py-2.5 font-semibold">Flags</th></tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.s.id} onClick={() => setOpenId(r.s.id)} tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setOpenId(r.s.id); }}
-                  className="cursor-pointer border-b border-line outline-none last:border-0 hover:bg-[#f9fafc] focus-visible:bg-[#eef1f7]">
-                  <td className="px-4 py-3 font-medium">{r.name}</td>
+                  className="cursor-pointer border-b border-line outline-none last:border-0 hover:bg-[#fafafa] focus-visible:bg-[#f5f5f5]">
+                  <td className="px-4 py-3"><div className="flex items-center gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-[#fafafa] text-xs text-ink2">{r.name.slice(0, 1)}</span><div><p className="font-medium">{r.name}</p><p className="mt-0.5 text-xs text-ink2">CMP2045 · Student submission</p></div></div></td>
                   <td className="px-4 py-3"><span className="flex gap-1.5">{r.rubric.map((s, i) => <Dot key={i} status={s} size={10} />)}</span></td>
                   <td className="px-4 py-3 text-ink2">
-                    {r.viva === "Awaiting your decision" ? <span className="rounded bg-[#fde8e6] px-2 py-0.5 text-xs font-semibold text-[#b42318]">{r.viva}</span> : r.viva}
+                    {r.viva === "Awaiting your decision" ? <span className="rounded-full bg-[#fde8e6] px-2.5 py-1 text-xs font-medium text-[#b42318]">{r.viva}</span> : r.viva}
                   </td>
                   <td className="px-4 py-3">{r.flags > 0 ? <span className="tnum inline-flex items-center gap-1 rounded bg-[#fff6e0] px-2 py-0.5 text-xs"><FlagIcon size={11} /> {r.flags}</span> : <span className="text-ink3">—</span>}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot><tr><td colSpan={4} className="border-t border-line px-4 py-2">{rows.length} student reports · Evidence, not verdicts</td></tr></tfoot>
           </table>
         </Card>
       )}
 
       {open && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-black/30" onClick={() => setOpenId(null)}>
-          <aside className="fadein h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()} aria-label="Student report">
+        <div className="fixed inset-0 z-40 flex justify-end bg-black/15" onClick={() => setOpenId(null)}>
+          <aside className="fadein h-full w-full max-w-md overflow-y-auto border-l border-line bg-white p-6 shadow-lg" onClick={(e) => e.stopPropagation()} aria-label="Student report">
             <div className="mb-1 flex items-center justify-between">
               <h2 className="text-lg font-semibold">{open.student}</h2>
               <button onClick={() => setOpenId(null)} aria-label="Close" className="rounded p-1 hover:bg-[#f6f6f4]"><X size={16} /></button>
@@ -119,10 +120,9 @@ export default function Reports() {
               {open.flags.map((f, i) => {
                 const line = f.transcript_index !== null ? open.viva_transcript[f.transcript_index] : undefined;
                 return (
-                  <li key={i} className="rounded border border-line p-3">
+                  <li key={i} className="rounded-xl border border-line p-4">
                     <div className="mb-1 flex items-center gap-2">
-                      {f.type === "injection" && <ShieldAlert size={16} className="text-red" aria-label="Injection caught" />}
-                      <Pill status={f.severity === "high" ? "red" : f.severity === "warn" ? "amber" : "untested"}>{f.type.replace(/_/g, " ")}</Pill>
+                      <Pill status={f.severity === "high" ? "red" : f.severity === "warn" ? "amber" : "untested"}>{f.type === "injection" && <ShieldAlert size={13} aria-label="Injection caught" />}{f.type.replace(/_/g, " ")}</Pill>
                     </div>
                     <p className="text-sm">{f.detail}</p>
                     <p className="mt-2 border-l-2 border-line pl-3 text-xs italic text-ink2">“{f.evidence_quote}”</p>

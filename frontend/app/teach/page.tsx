@@ -72,7 +72,7 @@ export default function Teach() {
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" role="tablist" aria-label="What to practise">
         {finalA && (
           <button role="tab" aria-selected={useFinal} onClick={() => setUseFinal(true)}
-            className={`rounded-md border p-3 text-left transition-colors ${useFinal ? "border-[#14284b] bg-white ring-1 ring-[#14284b]" : "border-line bg-white hover:bg-[#f9fafc]"}`}>
+            className={`rounded-md border p-3 text-left transition-colors ${useFinal ? "border-[#111111] bg-white ring-1 ring-[#111111]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink2"><FileText size={12} /> Your final piece</div>
             <p className="mt-0.5 font-medium">Concepts from your essay</p>
             <div className="mt-2 flex gap-1.5">{finalA.session!.concepts.map((c) => <Dot key={c.id} status={c.status} size={10} />)}</div>
@@ -83,7 +83,7 @@ export default function Teach() {
           const cs = labSessions[l.id]?.concepts;
           return (
             <button key={l.id} role="tab" aria-selected={active} onClick={() => { setUseFinal(false); setLabId(l.id); setError(null); }}
-              className={`rounded-md border p-3 text-left transition-colors ${active ? "border-[#14284b] bg-white ring-1 ring-[#14284b]" : "border-line bg-white hover:bg-[#f9fafc]"}`}>
+              className={`rounded-md border p-3 text-left transition-colors ${active ? "border-[#111111] bg-white ring-1 ring-[#111111]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
               <div className="flex items-center justify-between text-xs text-ink2">
                 <span className="font-semibold uppercase tracking-wide">Week {l.week}</span>
                 {l.isNew && <span className="rounded bg-[#e5372a] px-1.5 py-0.5 text-[10px] font-bold text-white">NEW</span>}

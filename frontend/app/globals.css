@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --color-page: #f2f4f8;
-  --color-paper: #fffdf8;
-  --color-accent: #14284b;
-  --color-accent-soft: #eef1f7;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif, sans-serif;
+  --color-page: #f5f5f5;
+  --color-paper: #ffffff;
+  --color-accent: #111111;
+  --color-accent-soft: #f5f5f5;
   --color-amber-ink: #8f5d0a;
-  --font-serif: var(--font-fraunces), Georgia, serif;
-  --color-ink: #1a1a1a;
+  --font-serif: var(--font-sans);
+  --color-ink: #111111;
   --color-ink2: #6b6b6b;
-  --color-ink3: #9a9a9a;
-  --color-line: rgba(0, 0, 0, 0.08);
+  --color-ink3: #8a8a8a;
+  --color-line: #eaeaea;
   --color-green: #2e9d5b;
   --color-amber: #e8a33d;
   --color-red: #d9483b;
-  --color-btn: #14284b;
+  --color-btn: #111111;
 }
 
 :root {
@@ -25,7 +25,7 @@
 body {
   background: var(--color-page);
   color: var(--color-ink);
-  font-size: 15px;
+  font-size: 14px;
   font-family: var(--font-sans);
 }
 
@@ -33,8 +33,8 @@ h1, h2, h3 {
   letter-spacing: -0.01em;
 }
 h1 {
-  color: #14284b;
-  font-family: var(--font-serif);
+  color: #111111;
+  font-family: var(--font-sans);
   font-weight: 600;
 }
 body {
@@ -85,3 +85,21 @@ body {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
+
+/* Shared geometry follows the compact, neutral application shell. */
+body { margin: 0; line-height: 1.5; }
+button, input, textarea, select { font: inherit; }
+button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { touch-action: manipulation; }
+.lucide { stroke-width: 1.5; flex-shrink: 0; }
+.viva-frame { height: calc(100dvh - 32px); margin: 16px; border: 1px solid #eaeaea; border-radius: 14px; background: #fff; box-shadow: 0 2px 8px #00000004; overflow: hidden; }
+.viva-sidebar { width: 240px; }
+.viva-main { scrollbar-gutter: stable; }
+.viva-main textarea, .viva-main input, .viva-main select { border-radius: 8px; }
+.viva-main table { border-collapse: collapse; }
+.viva-main th { height: 40px; color: #6b6b6b; font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.viva-main td { height: 44px; }
+.viva-main table tfoot td { height: 36px; color: #6b6b6b; font-size: 12px; background: #fafafa; }
+@media (max-width: 900px) { .viva-sidebar { width: 208px; } .viva-main { padding: 20px; } }
+@media (max-width: 640px) { .viva-frame { height: calc(100dvh - 16px); margin: 8px; } .viva-sidebar { width: 156px; } .viva-main { padding: 16px; } .viva-nav-label { font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }

@@ -35,7 +35,7 @@ export function ConceptTile({ c, active, compact }: { c: MapConcept; active?: bo
       </span>
     </>
   );
-  const cls = "group relative flex flex-col items-center gap-1 rounded p-1 outline-none focus-visible:ring-2 focus-visible:ring-[#14284b]";
+  const cls = "group relative flex flex-col items-center gap-1 rounded p-1 outline-none focus-visible:ring-2 focus-visible:ring-[#111111]";
   const tip = (
     <span
       role="tooltip"
@@ -43,7 +43,7 @@ export function ConceptTile({ c, active, compact }: { c: MapConcept; active?: bo
     >
       <span className="block font-semibold text-ink">{c.name}</span>
       <span className="mt-0.5 flex items-center gap-1.5 text-ink2"><span className="h-2 w-2 rounded-full" style={{ background: color }} />{STATUS_LABEL[c.status]}</span>
-      {practise && c.href && <span className="mt-1 block font-medium text-[#14284b]">Practise with Max →</span>}
+      {practise && c.href && <span className="mt-1 block font-medium text-[#111111]">Practise with Max →</span>}
     </span>
   );
   return c.href && practise ? (
