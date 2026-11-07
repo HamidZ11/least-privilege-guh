@@ -350,9 +350,6 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     _say(session, "max_transcript", "max", line, concept["id"])
     session["max_concept_id"] = None
 
-    next_concept = None if session.get("return_to_viva") else _weak_concept(session)
-    if next_concept is not None:
-        return _max_open(session, next_concept)
     session["return_to_viva"] = False
     session["mode"] = "viva"
     return session
