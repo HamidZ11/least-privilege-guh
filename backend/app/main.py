@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from app import stubs
 from app.llm import LLMError, LLMNotConfiguredError
+from app.parsing import ParseError, extract_text
 from app.routes import router as skeleton_router
 from app.sessions import create_session, get_session, list_sessions
 
@@ -116,7 +117,10 @@ def _read_text(file: UploadFile | None, text: str | None, label: str) -> str:
         raw = file.file.read(MAX_UPLOAD_BYTES + 1)
         if len(raw) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, f"The {label} is too large")
-        content = raw.decode("utf-8-sig", errors="replace")
+        try:
+            content = extract_text(file.filename, raw)
+        except ParseError as error:
+            raise HTTPException(422, str(error)) from None
     else:
         content = text or ""
     if not content.strip():
