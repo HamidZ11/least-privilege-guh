@@ -6,7 +6,7 @@ The same underlying ambiguity shares one cluster. A student is counted once.
 
 import hashlib
 import re
-from app.agents.guardian import record_call, scan_input, should_escalate
+from app.agents.guardian import note_agent, scan_input, should_escalate
 
 _REFERENCES = "cl-word-limit-references"
 _GAP = "The brief does not say whether the reference list counts toward the 1500 words."
@@ -176,7 +176,7 @@ def _add(cluster: dict, student: str, question: str) -> None:
 
 
 def _answered(quote: str) -> dict:
-    record_call("Guardian", "passed", "Brief answer quoted from the assignment brief")
+    note_agent("Guardian", "passed", "Brief answer quoted from the assignment brief")
     return {
         "status": "answered",
         "answer": quote,
@@ -188,7 +188,7 @@ def _answered(quote: str) -> dict:
 
 
 def _escalated(cluster: dict) -> dict:
-    record_call(
+    note_agent(
         "Guardian",
         "escalated",
         "Brief question escalated; the brief does not support an answer",
@@ -256,7 +256,7 @@ def answer(cluster_id: str, text: str) -> dict | None:
         return _public(cluster)
     cluster["status"] = "answered"
     cluster["lecturer_answer"] = clarification
-    record_call("Guardian", "passed", "Lecturer clarification recorded for a brief cluster")
+    note_agent("Guardian", "passed", "Lecturer clarification recorded for a brief cluster")
     return _public(cluster)
 
 

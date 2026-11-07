@@ -4,6 +4,7 @@ scan_input(text) -> {"text", "flags"}
 check_output(text, mode) -> str
 agents_status() -> {"agents", "log"}
 should_escalate(confidence, reason) -> bool
+note_agent(name, action, detail) -> None
 
 Detection is deterministic and does not call the LLM.
 
@@ -355,13 +356,13 @@ def scan_input(text: str) -> dict:
         text = "" if text is None else str(text)
     cleaned, flags, _reasons = _analyze(text)
     if flags:
-        record_call(
+        note_agent(
             "Guardian",
             "injection_blocked",
             "Hidden instruction removed before analysis",
         )
     else:
-        record_call("Guardian", "input_scanned", "Input scanned")
+        note_agent("Guardian", "input_scanned", "Input scanned")
     return {"text": cleaned, "flags": flags}
 
 
@@ -377,9 +378,9 @@ def check_output(text: str, mode: str = "output") -> str:
     reasons = _output_reasons(text)
     if reasons or not text.strip():
         label = reasons[0] if reasons else "empty output"
-        record_call("Guardian", "output_blocked", f"Output blocked: {label}")
+        note_agent("Guardian", "output_blocked", f"Output blocked: {label}")
         return _FALLBACK
-    record_call("Guardian", "passed", f"Output checked ({mode_label})")
+    note_agent("Guardian", "passed", f"Output checked ({mode_label})")
     return text
 
 
@@ -410,24 +411,24 @@ def reset_observability() -> None:
         _cards[name] = {"name": name, "role": role, "calls": 0, "last_action": "idle"}
 
 
-def record_call(agent: str, action: str, detail: str) -> None:
+def note_agent(name: str, action: str, detail: str) -> None:
     """Hamid calls this from agents/base.py.
 
-    record_call(agent: str, action: str, detail: str) -> None
+    note_agent(name: str, action: str, detail: str) -> None
 
     action must be input_scanned, injection_blocked, output_blocked, escalated,
     or passed. detail is truncated and must not include the submission.
     """
     if action not in _ACTIONS:
         raise ValueError(f"Unknown guardian action: {action}")
-    if agent not in _cards:
-        _cards[agent] = {"name": agent, "role": agent, "calls": 0, "last_action": "idle"}
-    _cards[agent]["calls"] += 1
-    _cards[agent]["last_action"] = action
+    if name not in _cards:
+        _cards[name] = {"name": name, "role": name, "calls": 0, "last_action": "idle"}
+    _cards[name]["calls"] += 1
+    _cards[name]["last_action"] = action
     _log.append(
         {
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "agent": agent,
+            "agent": name,
             "action": action,
             "detail": " ".join(str(detail).split())[:180],
         }
