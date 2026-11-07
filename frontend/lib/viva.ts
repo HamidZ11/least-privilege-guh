@@ -1,6 +1,6 @@
 // API client for the Viva endpoints. Every call falls back to local demo logic
 // if the backend is unreachable, so the UI never shows a blank or broken screen.
-import { AGENTS_FIXTURE, BRIEF_ESCALATED, CLUSTERS_FIXTURE, HEATMAP_FIXTURE, SESSION_FIXTURE } from "./fixtures";
+import { AGENTS_FIXTURE, BRIEF_ESCALATED, BRIEF_TEXT, CLUSTERS_FIXTURE, HEATMAP_FIXTURE, SESSION_FIXTURE } from "./fixtures";
 import { KW_REGISTRY, MODULE_RUBRIC_TEXT, type Lab } from "./course";
 import type {
   AgentCard, BriefAnswer, Cluster, GuardianEvent, HeatmapRow, RubricCriterion, Session, Status, Turn,
@@ -144,7 +144,7 @@ export async function rephrase(session: Session) {
   });
 }
 
-export const getBrief = () => call<{ text: string }>("/api/brief", undefined, () => ({ text: "" }));
+export const getBriefText = () => call<{ text: string }>("/api/brief", undefined, () => ({ text: BRIEF_TEXT.join("\n") }));
 
 export async function askBrief(student: string, question: string) {
   return call<BriefAnswer>("/api/brief/ask", json({ student, question }), () => {

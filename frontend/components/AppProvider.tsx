@@ -29,6 +29,7 @@ type Ctx = Store & {
   setRole: (r: Role) => void;
   student: string;
   clusters: Cluster[];
+  queueError: boolean;
   refreshQueue: () => void;
   openEscalations: number;
   notify: (to: Role, text: string, href: string, sticky?: boolean) => void;
