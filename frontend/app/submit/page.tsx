@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { CheckCircle2, Clock, FileText, Info, Loader2, Mic, ShieldAlert, Upload } from "lucide-react";
+import { Check, CheckCircle2, Clock, FileText, Info, Loader2, Mic, ShieldAlert, Upload } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Card, GhostButton, NotifBadge, PageTitle, PrimaryButton } from "@/components/ui";
 import { ESSAY_TEXT } from "@/lib/fixtures";
@@ -33,23 +34,69 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
     setText(await f.text());
   };
 
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const stepRef = useRef(0);
+  const steps = [
+    "Scanning for hidden instructions…",
+    a.kind === "final" ? "Reading your essay…" : "Reading your work…",
+    "Checking against the rubric…",
+  ];
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const setStepBoth = (n: number) => { stepRef.current = n; setStep(n); };
+
   const go = async () => {
     setBusy(true);
+    setStepBoth(0);
+    // Step through the agents every ~2s while the real call runs.
+    const tick = setInterval(() => { if (stepRef.current < steps.length - 1) setStepBoth(stepRef.current + 1); }, a.kind === "final" ? 2000 : 900);
     let session;
     if (a.kind === "final") {
       session = (await submitWork(student, text)).data;
-      if (session.flags.some((f) => f.type === "injection")) {
-        setCaught(true);
-        await new Promise((r) => setTimeout(r, 2200));
-      }
     } else {
+      await wait(2000);
       session = assessmentSession(a, student, text);
     }
+    clearInterval(tick);
+    if (session.flags.some((f) => f.type === "injection")) setCaught(true);
+    // If the call finished early, flush the remaining steps quickly so every agent is shown.
+    while (stepRef.current < steps.length - 1) { await wait(350); setStepBoth(stepRef.current + 1); }
+    await wait(450);
+    setStepBoth(steps.length);
+    await wait(caught || session.flags.some((f) => f.type === "injection") ? 1400 : 600);
     patchAssessment(a.id, { status: "viva_due", session, workName: name ?? "pasted-text.txt" });
     notify("student", `Your work for "${a.title}" is in. Next step: a short spoken viva about it.`, "/submit", true);
     setBusy(false);
     onDone();
+    router.push("/rubric?tab=assess");
   };
+
+  if (busy)
+    return (
+      <div className="border-t border-line bg-[#f9fafc] p-5" role="status" aria-live="polite">
+        <p className="mb-3 text-sm font-semibold">Your work is being checked</p>
+        <ol className="space-y-2.5">
+          {steps.map((label, i) => {
+            const done = step > i;
+            const active = step === i;
+            return (
+              <li key={label} className={`flex items-center gap-3 text-sm ${done || active ? "text-ink" : "text-ink3"}`}>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${done ? "bg-green text-white" : active ? "border border-[#14284b]" : "border border-line"}`}>
+                  {done ? <Check size={12} /> : active ? <Loader2 size={12} className="animate-spin text-[#14284b]" /> : null}
+                </span>
+                <span>{label.replace("…", done ? "" : "…")}</span>
+              </li>
+            );
+          })}
+        </ol>
+        {caught && (
+          <div className="fadein mt-4 flex items-start gap-2 rounded border border-line bg-[#fff6e0] px-3 py-2.5 text-sm">
+            <ShieldAlert size={16} className="mt-0.5 shrink-0 text-amber-ink" />
+            Guardian found a hidden instruction in the document, removed it and logged it. Everything else carries on as normal.
+          </div>
+        )}
+      </div>
+    );
 
   return (
     <div className="border-t border-line bg-[#f9fafc] p-5">
