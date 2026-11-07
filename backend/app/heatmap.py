@@ -1,7 +1,9 @@
 """Class heatmap: concepts x red/amber/green counts.
 
 Combines the demo cohort in data/mock_students.json (labelled demo data in the UI)
-with real sessions from app/sessions.py. Sessions are read-only here.
+with sessions from app/sessions.py, which include seeded demo sessions. Sessions are
+read-only here. Nobody is counted twice: a session wins over a mock student with the
+same name, and each session counts once.
 """
 
 import json
@@ -27,12 +29,21 @@ def heatmap() -> list[dict[str, Any]]:
         name: dict.fromkeys(STATUSES, 0) for name in mock["concepts"]
     }
 
+    sessions = [x for x in list_sessions() if "student" in x]
+    session_names = {x["student"].strip().lower() for x in sessions}
+
     for student in mock["students"]:
+        if student["student"].strip().lower() in session_names:
+            continue
         for concept, status in student["concepts"].items():
             if status in STATUSES:
                 counts.setdefault(concept, dict.fromkeys(STATUSES, 0))[status] += 1
 
-    for session in list_sessions():
+    seen: set[str] = set()
+    for session in sessions:
+        if session["id"] in seen:
+            continue
+        seen.add(session["id"])
         for concept in session.get("concepts") or []:
             status = concept.get("status")
             if status in STATUSES:  # "untested" isn't counted yet
