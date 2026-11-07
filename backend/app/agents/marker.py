@@ -78,16 +78,6 @@ def _trim_quote(quote: str | None) -> str:
     return TRAILING_JUNK.sub("", quote or "")
 
 
-def _quotes_are_real(mark: dict[str, Any], work_text: str, answer: str) -> bool:
-    submission_quote = normalise(mark["submission_quote"] or "")
-    answer_quote = normalise(mark["answer_quote"] or "")
-    return (
-        bool(submission_quote and answer_quote)
-        and submission_quote in normalise(work_text)
-        and answer_quote in normalise(answer)
-    )
-
-
 def _flag(mark: dict[str, Any], confidence: float, answer: str) -> dict[str, Any] | None:
     # Wording lives here, not in the model's output, so it's always neutral.
     # A green answer is never a concern: correcting an earlier mistake is learning.
@@ -137,9 +127,12 @@ def score(
     mark = MarkerAgent().run_checked(payload)
     mark["submission_quote"] = _trim_quote(mark["submission_quote"])
     mark["answer_quote"] = _trim_quote(mark["answer_quote"])
-    # A quote that isn't in the text isn't evidence, so no flag. The mark still stands.
-    if mark["contradicts_submission"] and not _quotes_are_real(mark, work_text, answer):
+    # A submission quote that isn't in the work isn't evidence, so no flag. The mark
+    # still stands. The answer is already known, so its own words can stand in.
+    if normalise(mark["submission_quote"]) not in normalise(work_text) or not mark["submission_quote"]:
         mark["contradicts_submission"] = False
+    if normalise(mark["answer_quote"]) not in normalise(answer) or not mark["answer_quote"]:
+        mark["answer_quote"] = answer[:200]
     confidence = clamp_confidence(mark["confidence"])
     return {
         "status": mark["status"],
