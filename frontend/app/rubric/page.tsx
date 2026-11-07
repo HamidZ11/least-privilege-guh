@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, ClipboardCheck, Download, Loader2, Mic, UserCheck } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
@@ -118,7 +119,8 @@ function AssessmentFeedback({ a }: { a: Assessment }) {
 
 export default function Feedback() {
   const { assessments, ready } = useApp();
-  const [tab, setTab] = useState<"labs" | "assess">("labs");
+  const params = useSearchParams();
+  const [tab, setTab] = useState<"labs" | "assess">(params.get("tab") === "assess" ? "assess" : "labs");
   if (!ready) return <div className="skeleton h-64 w-full" />;
   return (
     <div className="print-area mx-auto max-w-3xl">
