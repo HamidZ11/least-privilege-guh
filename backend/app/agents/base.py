@@ -13,8 +13,14 @@ import anthropic
 from pydantic import AfterValidator, BaseModel, ConfigDict, ValidationError
 
 from app.llm import MAX_TOKENS, LLMError, ask_claude
+from app.stubs import resolve
 
 logger = logging.getLogger(__name__)
+
+note_agent = resolve("app.agents.guardian", "note_agent")
+
+# Which card on the Agents page each agent's calls count towards.
+AGENT_CARDS = {"reader": "Reader", "checker": "Checker", "marker": "Marker"}
 
 # Added to every prompt that receives student text.
 UNTRUSTED_DATA_RULE = (
@@ -123,6 +129,8 @@ class Agent:
             max_tokens=self.max_tokens,
             effort=self.effort,
         )
+        card = AGENT_CARDS.get(self.name.split("_")[0], "Examiner")
+        note_agent(card, "passed", f"{self.name} call finished")
         if self.output_model:
             try:
                 output = self.output_model.model_validate(output).model_dump()
