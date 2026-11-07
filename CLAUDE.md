@@ -3,16 +3,16 @@
 Hackathon repo, 4 people working in parallel. Your job is to change ONLY your user's files and keep main working.
 
 ## Who owns what (all under backend/app/ unless noted)
-- Hamid: main.py, parsing.py, agents/reader.py, agents/examiner.py, agents/scripts/
-- Ebube: models.py, state.py, agents/checker.py, agents/marker.py, tts.py, heatmap.py
-- Nüman: agents/guardian.py, brief.py, data/, evals/
+- Hamid: main.py, parsing.py, llm.py, config.py, sessions.py, routes.py, stubs.py, agents/base.py, agents/reader.py, agents/examiner.py, agents/checker.py, agents/marker.py, agents/scripts/
+- Ebube: models.py, state.py, tts.py, heatmap.py
+- Nüman: agents/guardian.py, brief.py, data/, evals/ (repo root)
 - Sam: frontend/
 - Shared (ask the user before editing): CLAUDE.md, README.md, requirements.txt, frontend/package.json, .gitignore, .env.example, design/DESIGN.md
 
 Ask your user who they are if you don't know. Never edit another person's files. If your task needs a change there, STOP and write the exact change they need so your user can send it to them.
 
 ## Git
-- Work only on the user's own branch (hamid/agents, ebube/api, sam/frontend, numan/guardrails). Never commit or push to main directly.
+- Work only on the user's own branch (hamid/agents, ebube/api, sams-branch for Sam, noumaan-dev for Nüman). Never commit or push to main directly.
 - Before starting a task: git checkout main && git pull origin main && git checkout <branch> && git merge main --no-edit
 - Commit small and often with clear messages. Stage files by name, never "git add ." or "git add -A".
 - Before every commit run git status and git diff --cached --stat, and show the user the list of files.
