@@ -23,3 +23,7 @@ def update_session(session_id: str, data: dict[str, Any]) -> dict[str, Any] | No
     if session is not None:
         session.update(data)
     return session
+
+
+def list_sessions() -> list[dict[str, Any]]:
+    return list(_sessions.values())
