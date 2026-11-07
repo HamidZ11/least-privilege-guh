@@ -5,22 +5,21 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ArrowRight, ClipboardCheck, Download, Loader2, Mic, UserCheck } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Card, Confidence, Dot, GhostButton, PageTitle, Pill, PrimaryButton, STATUS_COLOR } from "@/components/ui";
+import { Card, Dot, GhostButton, PageTitle, Pill, PrimaryButton, STATUS_COLOR } from "@/components/ui";
 import type { Assessment } from "@/lib/course";
 import { checkLab, errorText } from "@/lib/viva";
 import type { RubricCriterion } from "@/lib/types";
 
 function Criterion({ r, practise, practiseHref }: { r: RubricCriterion; practise?: boolean; practiseHref?: string }) {
   return (
-    <Card className="fadein overflow-hidden">
+    <Card className="fadein overflow-hidden !rounded-none !border-x-0 !border-t-0">
       <div className="flex">
-        <div className="w-1 shrink-0" style={{ background: STATUS_COLOR[r.status] }} />
-        <div className="flex-1 space-y-2 p-4">
+        <div className="my-4 w-0.5 shrink-0 rounded-full" style={{ background: STATUS_COLOR[r.status] }} />
+        <div className="min-w-0 flex-1 space-y-2 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="flex-1 text-sm font-semibold">{r.criterion}</h3>
-            <span className="tnum text-xs text-ink2">{r.weight}%</span>
+            <span className="tnum text-xs text-ink2">{r.weight}% weighting</span>
             <Pill status={r.status} />
-            <Confidence value={r.confidence} />
           </div>
           <p className="leading-relaxed">{r.gap_note}</p>
           {r.quote && <p className="border-l-2 border-line pl-3 text-xs italic text-ink2">You wrote: “{r.quote}”</p>}
@@ -58,22 +57,24 @@ function LabFeedback() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-5">
-        <p className="mb-3 text-sm text-ink2">Paste or upload your lab work or notes for the week. You&apos;ll get feedback against what the lab was meant to teach. It isn&apos;t marked, and nobody else sees it.</p>
+      <Card className="!border-0 !rounded-none py-1">
+        <p className="mb-4 text-sm text-ink2">Paste your lab work or notes for the week. You&apos;ll get feedback against what the lab was meant to teach. It isn&apos;t marked, and nobody else sees it.</p>
         <div className="mb-3 flex flex-wrap gap-2">
           {labs.map((l) => (
-            <button key={l.id} onClick={() => setLabId(l.id)} className={`rounded border px-3 py-1.5 text-sm ${l.id === lab.id ? "border-[#111111] bg-[#f5f5f5] font-semibold text-[#111111]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
-              Week {l.week}: {l.title}
+            <button key={l.id} onClick={() => setLabId(l.id)} className={`rounded-lg border px-2.5 py-1.5 text-xs ${l.id === lab.id ? "border-[#111111] bg-[#f5f5f5] font-semibold text-[#111111]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
+              Week {l.week}
             </button>
           ))}
         </div>
+        <label htmlFor="lab-notes" className="mb-2 block text-sm font-medium">Week {lab.week}: {lab.title}</label>
         <textarea
+          id="lab-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={6}
           aria-label="Your lab notes"
           placeholder={`Your Week ${lab.week} lab work or notes…`}
-          className="w-full resize-none rounded border border-line px-3 py-2 outline-none focus:border-ink3"
+          className="w-full resize-none rounded-lg border border-line px-3 py-2 outline-none focus:border-[#a3a3a3] focus-visible:outline-1 focus-visible:outline-offset-0 focus-visible:outline-[#a3a3a3]"
         />
         {labErr && <p className="mt-2 text-sm text-[#b42318]" role="alert">{labErr}</p>}
         <div className="mt-3 flex justify-end">
@@ -132,8 +133,8 @@ export default function Feedback() {
   const [tab, setTab] = useState<"labs" | "assess">(params.get("tab") === "assess" ? "assess" : "labs");
   if (!ready) return <div className="skeleton h-64 w-full" />;
   return (
-    <div className="print-area mx-auto max-w-3xl">
-      <div className="flex items-start justify-between">
+    <div className="print-area max-w-[900px]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <PageTitle title="Feedback" sub="Where to focus next. A learning check, not a grade." />
         <GhostButton className="no-print" onClick={() => window.print()}><Download size={14} /> Download PDF</GhostButton>
       </div>

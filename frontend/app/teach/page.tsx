@@ -69,13 +69,13 @@ export default function Teach() {
     <>
       <PageTitle title="Teach Max" sub="Pick a weekly lab or your own submission. Max has some of it wrong, and teaching him is the best way to check you understand it." />
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" role="tablist" aria-label="What to practise">
+      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="What to practise">
         {finalA && (
           <button role="tab" aria-selected={useFinal} onClick={() => setUseFinal(true)}
-            className={`rounded-md border p-3 text-left transition-colors ${useFinal ? "border-[#111111] bg-white ring-1 ring-[#111111]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink2"><FileText size={12} /> Your final piece</div>
+            className={`min-w-36 max-w-60 flex-1 rounded-lg border px-3 py-2 text-left transition-colors ${useFinal ? "border-[#d3e5e1] bg-[#f3f9f7]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-ink2"><FileText size={12} /> Your final piece</div>
             <p className="mt-0.5 font-medium">Concepts from your essay</p>
-            <div className="mt-2 flex gap-1.5">{finalA.session!.concepts.map((c) => <Dot key={c.id} status={c.status} size={10} />)}</div>
+            <div className="mt-1.5 flex gap-1.5">{finalA.session!.concepts.map((c) => <Dot key={c.id} status={c.status} size={10} />)}</div>
           </button>
         )}
         {labs.map((l) => {
@@ -83,13 +83,13 @@ export default function Teach() {
           const cs = labSessions[l.id]?.concepts;
           return (
             <button key={l.id} role="tab" aria-selected={active} onClick={() => { setUseFinal(false); setLabId(l.id); setError(null); }}
-              className={`rounded-md border p-3 text-left transition-colors ${active ? "border-[#111111] bg-white ring-1 ring-[#111111]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
+              className={`min-w-36 max-w-60 flex-1 rounded-lg border px-3 py-2 text-left transition-colors ${active ? "border-[#d3e5e1] bg-[#f3f9f7]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
               <div className="flex items-center justify-between text-xs text-ink2">
-                <span className="font-semibold uppercase tracking-wide">Week {l.week}</span>
+                <span className="font-medium">Week {l.week}</span>
                 {l.isNew && <span className="rounded bg-[#e5372a] px-1.5 py-0.5 text-[10px] font-bold text-white">NEW</span>}
               </div>
               <p className="mt-0.5 font-medium">{l.title}</p>
-              <div className="mt-2 flex gap-1.5">
+              <div className="mt-1.5 flex gap-1.5">
                 {(cs ? cs.map((c) => ({ id: c.id, status: c.status })) : l.concepts.map((c) => ({ id: c.id, status: mastery[c.id] ?? ("untested" as const) }))).map((c) => <Dot key={c.id} status={c.status} size={10} />)}
               </div>
             </button>
@@ -104,9 +104,17 @@ export default function Teach() {
         </div>
       )}
       {!session && !error && (
-        <div className="flex items-center gap-3 rounded border border-line bg-white px-4 py-6 text-ink2" role="status">
-          <Loader2 size={16} className="animate-spin" /> {creating ? `Getting Max ready for Week ${lab?.week}…` : "Loading…"}
-        </div>
+        <section className="max-w-[900px] overflow-hidden rounded-xl border border-line bg-white" aria-label="Teach Max workspace">
+          <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0f766e] text-sm font-semibold text-white">M</span>
+            <div><h2 className="text-sm font-semibold">Max, a fellow student</h2><p className="text-xs text-ink2">{lab?.title}</p></div>
+          </div>
+          <div className="space-y-4 px-5 py-8">
+            <p className="max-w-lg text-base font-medium">Hear his claim. Spot the gap. Explain it in your own words.</p>
+            <p className="max-w-lg text-sm text-ink2">Max will take the wrong side of a concept so you can practise correcting him. This is practice, not a mark.</p>
+            <div className="flex items-center gap-2 text-sm text-ink2" role="status"><Loader2 size={16} className="shrink-0 animate-spin" /> {creating ? `Getting Max ready for Week ${lab?.week}…` : "Loading…"}</div>
+          </div>
+        </section>
       )}
       {session && (
         <ChatPanel

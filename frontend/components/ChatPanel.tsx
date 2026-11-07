@@ -120,8 +120,8 @@ export default function ChatPanel({
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [transcript.length, phase]);
 
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
-      <Card className="flex h-[calc(100dvh-216px)] min-h-[520px] min-w-0 flex-col overflow-hidden">
+    <div className="grid items-start gap-5 min-[1440px]:grid-cols-[minmax(0,1fr)_260px]">
+      <Card className="flex h-[calc(100dvh-320px)] min-h-[420px] w-full max-w-[900px] min-w-0 flex-col overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
           <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white transition-colors ${isMax ? "bg-[#0f766e]" : "bg-btn"}`}>{isMax ? "M" : "E"}</span>
           <div className="min-w-0 flex-1">

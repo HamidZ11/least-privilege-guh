@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import MasteryMap, { type MapRow } from "@/components/MasteryMap";
-import { Card, Dot, PageTitle, Skeleton } from "@/components/ui";
+import { Card, Dot, PageTitle, Skeleton, STATUS_COLOR } from "@/components/ui";
 
 export default function Overview() {
   const { labs, mastery, labSessions, assessments, student, ready } = useApp();
@@ -40,15 +40,15 @@ export default function Overview() {
   return (
     <>
       <PageTitle title={`Good to see you, ${student.split(" ")[0]}`} sub={`${count("green")} of ${all.length} concepts secure so far. Your map is built from your weekly labs, your submission and your chats with Max.`} />
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map((s) => (
-          <Card key={s.label} className="p-4">
-            <div className="flex items-center gap-2 text-xs text-ink2"><Dot status={s.s} /> {s.label}</div>
-            <p className="tnum mt-2 text-2xl font-semibold">{s.value}</p>
-          </Card>
-        ))}
+      <div className="mb-6 max-w-3xl space-y-3" aria-label="Concept progress">
+        <div className="flex h-1.5 overflow-hidden rounded-full bg-[#f0f0f0]" aria-hidden="true">
+          {stats.map((s) => <span key={s.s} style={{ flexGrow: s.value, background: STATUS_COLOR[s.s] }} />)}
+        </div>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {stats.map((s) => <span key={s.label} className="flex items-center gap-1.5 text-xs text-ink2"><Dot status={s.s} /><strong className="tnum font-semibold text-ink">{s.value}</strong> {s.label}</span>)}
+        </div>
       </div>
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <Card className="min-w-0 p-5">
           <h3 className="mb-3 text-sm font-semibold">Mastery map by week</h3>
           <MasteryMap rows={rows} />

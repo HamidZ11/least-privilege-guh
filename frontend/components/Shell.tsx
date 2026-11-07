@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Activity, Bell, BookOpen, ClipboardCheck, FlaskConical, Grid3x3, Inbox, LayoutDashboard,
-  MessageCircle, ShieldCheck, Upload, Users, type LucideIcon,
+  MessageCircle, Upload, Users, type LucideIcon,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
 import { NotifBadge } from "./ui";
@@ -76,14 +76,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <span className="text-base font-semibold tracking-tight">Viva</span>
           <span className="ml-auto rounded border border-line bg-white px-1.5 py-0.5 text-[10px] text-ink2">CMP2045</span>
         </div>
-        <div className="mx-3 mb-5 flex rounded-lg border border-line bg-[#f0f0f0] p-0.5 text-xs" role="tablist" aria-label="View as">
-          {(["student", "lecturer"] as const).map((r) => (
-            <button key={r} role="tab" aria-selected={role === r} onClick={() => switchRole(r)}
-              className={`flex-1 rounded-md px-2 py-1.5 capitalize transition-colors ${role === r ? "bg-white font-medium text-ink shadow-sm" : "text-ink2 hover:text-ink"}`}>
-              {r}
-            </button>
-          ))}
-        </div>
         <nav className="min-h-0 flex-1 overflow-y-auto px-2">
           {groups.map((g) => (
             <div key={g.label} className="mb-6">
@@ -107,9 +99,14 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
-        <div className="mx-4 mb-4 flex gap-2 rounded-lg border border-line bg-white p-3 text-xs text-ink2">
-          <ShieldCheck size={14} className="mt-0.5" />
-          <span>Evidence, not verdicts.<br />A person makes the final call.</span>
+        <p className="px-4 pb-2 text-xs text-ink2">Demo mode · view as</p>
+        <div className="mx-3 mb-3 flex rounded-lg border border-line bg-[#f0f0f0] p-0.5 text-xs" role="tablist" aria-label="Demo mode: view as">
+          {(["student", "lecturer"] as const).map((r) => (
+            <button key={r} role="tab" aria-selected={role === r} onClick={() => switchRole(r)}
+              className={`flex-1 rounded-md px-2 py-1.5 capitalize transition-colors ${role === r ? "bg-white font-medium text-ink shadow-sm" : "text-ink2 hover:text-ink"}`}>
+              {r}
+            </button>
+          ))}
         </div>
         <div className="flex shrink-0 items-center gap-2.5 border-t border-line px-4 py-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-white text-xs font-medium">{role === "student" ? "AK" : "ML"}</span>
@@ -140,8 +137,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
-        <main className="viva-main min-h-0 min-w-0 flex-1 overflow-y-auto bg-white p-6">
-          <div className="mx-auto max-w-6xl">{children}</div>
+        <main className="viva-main min-h-0 min-w-0 flex-1 overflow-y-auto bg-white p-8">
+          <div className="max-w-6xl">{children}</div>
         </main>
       </div>
     </div>

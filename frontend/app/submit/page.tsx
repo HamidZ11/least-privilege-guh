@@ -186,7 +186,7 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
       )}
 
       <div className="mt-3 flex items-center justify-between">
-        <GhostButton type="button" onClick={() => { setText(ESSAY_TEXT); setFile(null); setFileText(null); setErr(null); }}><FileText size={14} /> Use demo {a.kind === "final" ? "essay" : "answers"}</GhostButton>
+        <GhostButton className="!border-transparent !bg-transparent px-0 text-ink2" type="button" onClick={() => { setText(ESSAY_TEXT); setFile(null); setFileText(null); setErr(null); }}><FileText size={14} /> Load demo {a.kind === "final" ? "essay" : "answers"}</GhostButton>
         <PrimaryButton onClick={go} disabled={!text.trim() && !file}>Submit work</PrimaryButton>
       </div>
     </div>
@@ -232,7 +232,7 @@ export default function Submit() {
                 </div>
                 <span className={`rounded px-2 py-1 text-xs font-semibold ${st.cls}`}>{st.label}</span>
                 {a.status === "not_started" && (
-                  <PrimaryButton onClick={() => setOpen(open === a.id ? null : a.id)}><Upload size={14} /> Upload work</PrimaryButton>
+                  <GhostButton onClick={() => setOpen(open === a.id ? null : a.id)}><Upload size={14} /> Choose work</GhostButton>
                 )}
                 {a.status === "viva_due" && (
                   <Link href={`/submit/viva/${a.id}`} className="relative">

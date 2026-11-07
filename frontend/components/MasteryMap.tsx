@@ -15,7 +15,7 @@ export function ConceptTile({ c, active, compact }: { c: MapConcept; active?: bo
   const practise = c.status === "red" || c.status === "amber";
   const body = (
     <>
-      <svg viewBox="0 0 100 100" className={compact ? "h-10 w-10" : "h-14 w-14"} aria-hidden>
+      <svg viewBox="0 0 100 100" className={compact ? "h-7 w-7" : "h-9 w-9"} aria-hidden>
         <polygon
           points={HEX}
           fill={color}
@@ -71,7 +71,7 @@ export default function MasteryMap({ rows, activeId }: { rows: MapRow[]; activeI
         {rows.map((r) => (
           <div key={r.key} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:gap-4 first:pt-0">
             <div className="shrink-0 sm:w-36">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink3">{r.label}</p>
+              <p className="text-xs font-medium text-ink2">{r.label}</p>
               {r.sub && <p className="text-sm text-ink2">{r.sub}</p>}
               {r.source && <p className="mt-0.5 text-[11px] text-ink3">{r.source === "live" ? "Live from your session" : "Seed data"}</p>}
             </div>

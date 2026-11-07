@@ -64,8 +64,8 @@ export default function Brief() {
         </div>
       ))}
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-        <Card className="p-6">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <Card className="min-w-0 p-6 lg:p-8">
           {!brief && !briefErr && <div className="space-y-3"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-full" /></div>}
           {briefErr && (
             <div className="flex items-center gap-3">
@@ -75,8 +75,9 @@ export default function Brief() {
           )}
           {brief && (
             <>
-              <h2 className="mb-4 text-base font-semibold">{brief[0]}</h2>
-              <div className="space-y-3 leading-relaxed">
+              <p className="mb-2 text-xs font-medium text-ink2">Module brief</p>
+              <h2 className="mb-5 max-w-[65ch] text-xl font-semibold leading-7">{brief[0]}</h2>
+              <div className="max-w-[78ch] space-y-4 text-[14px] leading-[1.55] [&>p:first-child]:border-b [&>p:first-child]:border-line [&>p:first-child]:pb-4 [&>p:first-child]:text-sm [&>p:first-child]:font-medium [&>p:first-child]:text-ink2 [&>p:last-child]:border-t [&>p:last-child]:border-line [&>p:last-child]:pt-4 [&>p:last-child]:text-sm [&>p:last-child]:text-ink2">
                 {brief.slice(1).map((line) => {
                   const hit = highlight && line.includes(highlight.slice(0, 30));
                   return <p key={line} className={hit ? "fadein -mx-2 rounded bg-[#fff6e0] px-2 py-1 ring-1 ring-[#e8a33d66]" : ""}>{line}</p>;
@@ -97,7 +98,7 @@ export default function Brief() {
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } }}
               rows={3}
               placeholder="e.g. Does the 1500 words include references?"
-              className="w-full resize-none rounded border border-line px-3 py-2 outline-none focus:border-ink3"
+              className="w-full resize-none rounded-lg border border-line bg-white px-3 py-2 outline-none focus:border-[#a3a3a3] focus-visible:outline-1 focus-visible:outline-offset-0 focus-visible:outline-[#a3a3a3]"
             />
             {askErr && <p className="mt-2 text-sm text-[#b42318]" role="alert">{askErr}</p>}
             <div className="mt-2 flex justify-end">
@@ -106,8 +107,9 @@ export default function Brief() {
           </Card>
 
           {log.map((e, i) => (
-            <Card key={i} className="fadein space-y-2 p-4">
-              <p className="text-sm font-medium">{e.q}</p>
+            <Card key={i} className="fadein space-y-3 !rounded-none !border-x-0 !border-t-0 px-1 py-4">
+              <p className="text-xs font-medium text-ink2">Your question</p>
+              <p className="break-words text-sm font-medium">{e.q}</p>
               {e.a.status === "answered" ? (
                 <>
                   <p className="flex items-start gap-2"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-green" />{e.a.answer}</p>
