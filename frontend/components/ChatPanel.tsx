@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, Loader2, Mic, MicOff, Play, RefreshCw, Send, Square, Volume2, Wand2 } from "lucide-react";
+import { Keyboard, Loader2, Mic, MicOff, Play, RefreshCw, RotateCcw, Send, Square, Volume2, Wand2 } from "lucide-react";
 import MasteryRail from "./MasteryRail";
 import { Card, GhostButton, PrimaryButton, Skeleton } from "./ui";
-import { chat, rephrase, speak, stopSpeaking, type VoiceSource } from "@/lib/viva";
+import { chat, errorText, rephrase, speak, stopSpeaking, type VoiceSource } from "@/lib/viva";
 import type { Session, Turn } from "@/lib/types";
 
 type Kind = "viva" | "max";
@@ -30,13 +30,14 @@ function useTimer(startedAt: string | null) {
 }
 
 export default function ChatPanel({
-  kind, session, onSession, railTitle, subtitle,
+  kind, session, onSession, railTitle, subtitle, focusConceptId,
 }: {
   kind: Kind;
   session: Session;
   onSession: (s: Session) => void;
   railTitle?: string;
   subtitle?: string;
+  focusConceptId?: string | null;
 }) {
   const [mode, setMode] = useState<Mode>("voice");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -44,6 +45,7 @@ export default function ChatPanel({
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<VoiceSource | null>(null);
+  const retryRef = useRef<(() => void) | null>(null);
   const recRef = useRef<Rec | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef(session);
@@ -51,13 +53,16 @@ export default function ChatPanel({
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
-  const transcript: Turn[] = kind === "viva" ? session.viva_transcript : session.max_transcript;
-  const timer = useTimer(kind === "viva" ? session.viva_started_at : null);
-  const isMax = kind === "max";
+  // The backend decides who is talking. In a viva, mode "teach_max" means Max takes over until it returns to "viva".
+  const eff: Kind = kind === "viva" && session.mode === "teach_max" ? "max" : kind;
+  const effRef = useRef(eff);
+  effRef.current = eff;
+  const isMax = eff === "max";
   const label = isMax ? "Max" : "Examiner";
-  const finished = kind === "viva" && session.mode === "recap";
+  const transcript: Turn[] = isMax ? session.max_transcript : session.viva_transcript;
+  const timer = useTimer(kind === "viva" ? session.viva_started_at : null);
+  const finished = kind === "viva" && (session.mode === "recap" || session.mode === "done");
   const busy = phase === "thinking" || phase === "speaking";
-  const lastAi = [...transcript].reverse().find((t) => t.role !== "student");
 
   useEffect(() => {
     try { const m = localStorage.getItem("viva-mode"); if (m === "voice" || m === "text") setMode(m); } catch { /* ignore */ }
@@ -74,7 +79,7 @@ export default function ChatPanel({
     type W = typeof window & { SpeechRecognition?: new () => Rec; webkitSpeechRecognition?: new () => Rec };
     const w = window as W;
     const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!SR) { setError("This browser can't listen. Switch to Text to type your answer."); setPhase("idle"); return; }
+    if (!SR) { setError("This browser can't listen. Type your answer instead."); retryRef.current = null; setPhase("idle"); return; }
     const r = new SR();
     r.lang = "en-GB";
     r.interimResults = false;
@@ -98,27 +103,33 @@ export default function ChatPanel({
     setPhase("thinking");
     setError(null);
     const cur = sessionRef.current;
+    const curKind = effRef.current;
     if (value) {
-      const key = kind === "viva" ? "viva_transcript" : "max_transcript";
-      const t = kind === "viva" ? cur.viva_transcript : cur.max_transcript;
+      const key = curKind === "max" ? "max_transcript" : "viva_transcript";
+      const t = curKind === "max" ? cur.max_transcript : cur.viva_transcript;
       onSession({ ...cur, [key]: [...t, { role: "student", text: value, concept_id: cur.current_concept_id }] });
     }
     try {
-      const next = (await chat(kind, cur, value)).data;
+      const next = (await chat(curKind, cur, value)).data;
       onSession(next);
-      const last = (kind === "viva" ? next.viva_transcript : next.max_transcript).at(-1);
+      retryRef.current = null;
+      // Whoever the backend says is speaking now (it may have switched mode).
+      const nextKind: Kind = kind === "viva" && next.mode === "teach_max" ? "max" : kind;
+      const last = (nextKind === "max" ? next.max_transcript : next.viva_transcript).at(-1);
       if (modeRef.current === "voice" && last && last.role !== "student") {
         setPhase("speaking");
-        const src = await speak(last.text, kind === "viva" ? "examiner" : "max");
+        const src = await speak(last.text, nextKind === "max" ? "max" : "examiner");
         setSource(src);
-        const done = kind === "viva" && next.mode === "recap";
+        const done = kind === "viva" && (next.mode === "recap" || next.mode === "done");
         if (modeRef.current === "voice" && !done) startListening();
         else setPhase("idle");
       } else {
         setPhase("idle");
       }
-    } catch {
-      setError("Something went wrong. You can keep going with Text.");
+    } catch (e) {
+      // Put the student's words back so Retry can resend them.
+      setError(errorText(e));
+      retryRef.current = () => send(value);
       setPhase("idle");
     }
   };
@@ -129,14 +140,31 @@ export default function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, session.id]);
 
+  // When the backend hands over to Max mid-viva and Max has not spoken yet, let him open.
+  const kicked = useRef<string | null>(null);
+  useEffect(() => {
+    if (kind === "viva" && eff === "max" && session.max_transcript.length === 0 && begun && phase === "idle" && kicked.current !== session.id) {
+      kicked.current = session.id;
+      send(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eff, begun, phase]);
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [transcript.length, phase]);
 
   const begin = () => { setBegun(true); send(null); };
-  const resume = () => { setBegun(true); if (lastAi && modeRef.current === "voice") { setPhase("speaking"); speak(lastAi.text, isMax ? "max" : "examiner").then((s) => { setSource(s); startListening(); }); } else send(null); };
+  const resume = () => {
+    setBegun(true);
+    const lastAi = [...transcript].reverse().find((t) => t.role !== "student");
+    if (lastAi && modeRef.current === "voice") {
+      setPhase("speaking");
+      speak(lastAi.text, isMax ? "max" : "examiner").then((s) => { setSource(s); startListening(); });
+    } else send(null);
+  };
 
   const needsStart = mode === "voice" && !begun && phase === "idle" && !finished;
   const status = {
-    idle: "Tap the mic to answer",
+    idle: "Tap the mic to answer, or type below",
     thinking: `${label} is thinking…`,
     speaking: `${label} is speaking…`,
     listening: "Listening… speak now",
@@ -144,9 +172,9 @@ export default function ChatPanel({
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-      <Card className="flex h-[calc(100vh-18rem)] min-h-[460px] flex-col">
+      <Card className="flex h-[calc(100vh-18rem)] min-h-[480px] flex-col">
         <div className="flex items-center gap-3 border-b border-line px-5 py-3">
-          <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white ${isMax ? "bg-[#6b6b6b]" : "bg-btn"}`}>{isMax ? "M" : "E"}</span>
+          <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white transition-colors ${isMax ? "bg-[#0f766e]" : "bg-btn"}`}>{isMax ? "M" : "E"}</span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">{isMax ? "Max, a fellow student" : "Viva examiner"}</p>
             <p className="truncate text-xs text-ink2">{subtitle ?? (isMax ? "Max thinks he understands this. Correct him." : "A short conversation about your own work")}</p>
@@ -158,16 +186,16 @@ export default function ChatPanel({
           </div>
         </div>
 
-        {kind === "viva" && session.mode === "teach_max" && (
-          <div className="fadein flex items-center gap-2 border-b border-line bg-[#f6f7fa] px-5 py-2 text-sm">
-            <Wand2 size={14} /> Noted. You can practise this topic with Max in Teach Max after your viva.
+        {kind === "viva" && isMax && (
+          <div className="fadein flex items-center gap-2 border-b border-line bg-[#e6f4f2] px-5 py-2 text-sm text-[#0b5a54]" role="status">
+            <Wand2 size={14} /> Switching to Teach Max: let&apos;s fix this one first
           </div>
         )}
         {finished && (
           <div className="border-b border-line bg-[#f6f7fa] px-5 py-3 text-sm">
             <p className="mb-1 font-medium">Viva complete. Your module leader will review it.</p>
-            <p className="text-ink2">Three things worth revising:</p>
-            <ol className="list-decimal pl-5 text-ink2">{session.revise.map((r) => <li key={r}>{r}</li>)}</ol>
+            {session.revise.length > 0 && <><p className="text-ink2">Three things worth revising:</p>
+            <ol className="list-decimal pl-5 text-ink2">{session.revise.map((r) => <li key={r}>{r}</li>)}</ol></>}
           </div>
         )}
 
@@ -177,7 +205,7 @@ export default function ChatPanel({
             const mine = t.role === "student";
             return (
               <div key={i} className={`fadein flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] rounded-md px-3.5 py-2.5 ${mine ? "bg-btn text-white" : "bg-[#eef1f7]"}`}>
+                <div className={`max-w-[80%] rounded-md px-3.5 py-2.5 ${mine ? "bg-btn text-white" : isMax ? "bg-[#e6f4f2]" : "bg-[#eef1f7]"}`}>
                   {!mine && <p className="mb-0.5 text-xs font-medium text-ink2">{label}{mode === "voice" && <span className="font-normal"> · captions</span>}</p>}
                   <p className="whitespace-pre-wrap leading-relaxed">{t.text}</p>
                 </div>
@@ -187,10 +215,15 @@ export default function ChatPanel({
           <div ref={endRef} />
         </div>
 
-        {error && <p className="px-5 pb-2 text-sm text-red" role="alert">{error}</p>}
+        {error && (
+          <div className="mx-5 mb-2 flex items-center gap-3 rounded border border-[#f5c2bd] bg-[#fff5f4] px-3 py-2 text-sm" role="alert">
+            <span className="flex-1 text-[#b42318]">{error}</span>
+            {retryRef.current && <GhostButton type="button" onClick={() => retryRef.current?.()}><RotateCcw size={14} /> Retry</GhostButton>}
+          </div>
+        )}
 
-        {mode === "voice" ? (
-          <div className="flex flex-col items-center gap-2 border-t border-line bg-[#f9fafc] px-5 py-4">
+        {mode === "voice" && (
+          <div className="flex flex-col items-center gap-2 border-t border-line bg-[#f9fafc] px-5 py-3">
             {needsStart ? (
               <>
                 <PrimaryButton onClick={transcript.length ? resume : begin} className="!h-11 px-5"><Play size={16} /> {transcript.length ? "Resume voice session" : isMax ? "Start talking to Max" : "Start your viva"}</PrimaryButton>
@@ -203,50 +236,51 @@ export default function ChatPanel({
                     onClick={() => (phase === "listening" ? recRef.current?.stop() : phase === "speaking" ? (stopSpeaking(), startListening()) : startListening())}
                     disabled={finished || phase === "thinking"}
                     aria-label={phase === "listening" ? "Stop listening" : "Answer by voice"}
-                    className={`relative flex h-14 w-14 items-center justify-center rounded-full text-white transition-colors disabled:bg-[#cfcfcc] ${phase === "listening" ? "bg-[#e5372a]" : "bg-btn hover:bg-[#0d1c38]"}`}
+                    className={`relative flex h-12 w-12 items-center justify-center rounded-full text-white transition-colors disabled:bg-[#cfcfcc] ${phase === "listening" ? "bg-[#e5372a]" : "bg-btn hover:bg-[#0d1c38]"}`}
                   >
                     {phase === "listening" && <span className="absolute inset-0 animate-ping rounded-full bg-[#e5372a] opacity-30" />}
-                    {phase === "listening" ? <MicOff size={22} /> : phase === "thinking" ? <Loader2 size={22} className="animate-spin" /> : phase === "speaking" ? <Volume2 size={22} /> : <Mic size={22} />}
+                    {phase === "listening" ? <MicOff size={20} /> : phase === "thinking" ? <Loader2 size={20} className="animate-spin" /> : phase === "speaking" ? <Volume2 size={20} /> : <Mic size={20} />}
                   </button>
                   {phase === "speaking" && <GhostButton type="button" onClick={() => { stopSpeaking(); setPhase("idle"); }}><Square size={12} /> Skip</GhostButton>}
-                  {!isMax && <GhostButton type="button" disabled={busy || finished} onClick={async () => { const r = (await rephrase(session)).data; onSession(r); const l = r.viva_transcript.at(-1); if (l) { setPhase("speaking"); await speak(l.text, "examiner"); setPhase("idle"); } }}><RefreshCw size={14} /> Plain English</GhostButton>}
                 </div>
                 <p className="text-sm font-medium" role="status">{finished ? "Viva complete" : status}</p>
                 <p className="text-xs text-ink3">
-                  {source === "elevenlabs" ? "Voice: ElevenLabs" : source === "browser" ? "Voice: browser voice (ElevenLabs isn't reachable right now)" : "Speaks with ElevenLabs, listens with your browser"} · switch to Text any time
+                  {source === "elevenlabs" ? "Voice: ElevenLabs" : source === "none" ? "Voice unavailable right now, showing text only" : "Speaks with ElevenLabs, listens with your browser"}
                 </p>
               </>
             )}
           </div>
-        ) : (
-          <form
-            className="flex items-end gap-2 border-t border-line p-3"
-            onSubmit={(e) => { e.preventDefault(); const v = text.trim(); if (v && !finished && !busy) { setText(""); send(v); } }}
-          >
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
-              rows={2}
-              disabled={finished}
-              placeholder={isMax ? "Explain it to Max in your own words…" : "Type your answer…"}
-              aria-label="Your answer"
-              className="min-h-[44px] flex-1 resize-none rounded border border-line px-3 py-2 outline-none focus:border-ink3 disabled:bg-[#f6f6f4]"
-            />
-            {!isMax && (
-              <GhostButton type="button" disabled={busy || finished} onClick={async () => { onSession((await rephrase(session)).data); }}>
-                <RefreshCw size={14} /> Plain English
-              </GhostButton>
-            )}
-            <PrimaryButton type="submit" disabled={busy || finished || !text.trim()} aria-label="Send">
-              {phase === "thinking" ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send
-            </PrimaryButton>
-          </form>
         )}
+
+        <form
+          className="flex items-end gap-2 border-t border-line p-3"
+          onSubmit={(e) => { e.preventDefault(); const v = text.trim(); if (v && !finished && phase !== "thinking") { setText(""); setBegun(true); send(v); } }}
+        >
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
+            rows={2}
+            disabled={finished}
+            placeholder={isMax ? "Explain it to Max in your own words…" : "Type your answer…"}
+            aria-label="Your answer"
+            className="min-h-[44px] flex-1 resize-none rounded border border-line px-3 py-2 outline-none focus:border-ink3 disabled:bg-[#f6f6f4]"
+          />
+          {!isMax && (
+            <GhostButton type="button" disabled={busy || finished} onClick={async () => {
+              try { onSession((await rephrase(session)).data); } catch (e) { setError(errorText(e)); }
+            }}>
+              <RefreshCw size={14} /> Plain English
+            </GhostButton>
+          )}
+          <PrimaryButton type="submit" disabled={phase === "thinking" || finished || !text.trim()} aria-label="Send">
+            {phase === "thinking" ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send
+          </PrimaryButton>
+        </form>
       </Card>
 
       <div className="space-y-4">
-        <MasteryRail concepts={session.concepts} activeId={session.current_concept_id} title={railTitle} />
+        <MasteryRail concepts={session.concepts} activeId={focusConceptId ?? session.current_concept_id} title={railTitle} />
         <p className="px-1 text-xs text-ink3">
           {isMax ? "This is practice, not marked. " : "Your answers are checked against your own submission. "}
           A human always makes the final call.

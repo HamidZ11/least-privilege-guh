@@ -1,6 +1,6 @@
 // API client for the Viva endpoints. Every call falls back to local demo logic
 // if the backend is unreachable, so the UI never shows a blank or broken screen.
-import { AGENTS_FIXTURE, BRIEF_ESCALATED, CLUSTERS_FIXTURE, HEATMAP_FIXTURE, SESSION_FIXTURE } from "./fixtures";
+import { AGENTS_FIXTURE, BRIEF_ESCALATED, BRIEF_TEXT, CLUSTERS_FIXTURE, HEATMAP_FIXTURE, SESSION_FIXTURE } from "./fixtures";
 import { KW_REGISTRY, MODULE_RUBRIC_TEXT, type Lab } from "./course";
 import type {
   AgentCard, BriefAnswer, Cluster, GuardianEvent, HeatmapRow, RubricCriterion, Session, Status, Turn,
@@ -9,19 +9,30 @@ import type {
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
-async function call<T>(path: string, init: RequestInit | undefined, fallback: () => T): Promise<{ data: T; live: boolean }> {
+export const OFFLINE = process.env.NEXT_PUBLIC_DEMO_OFFLINE === "1";
+export const FRIENDLY_ERROR = "Couldn't reach Viva. Try again.";
+export class ApiError extends Error {}
+
+/** Real API call. Never silently falls back to fixtures; only NEXT_PUBLIC_DEMO_OFFLINE=1 does. */
+async function call<T>(path: string, init: RequestInit | undefined, fallback: () => T, timeoutMs = 9000): Promise<{ data: T; live: boolean }> {
+  if (OFFLINE) return { data: fallback(), live: false };
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 9000);
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(`${API}${path}`, { ...init, signal: ctrl.signal });
-    if (!res.ok) throw new Error(String(res.status));
+    if (!res.ok) {
+      let detail = "";
+      try { detail = (await res.json())?.detail ?? ""; } catch { /* no body */ }
+      throw new ApiError(res.status >= 500 && !detail ? FRIENDLY_ERROR : detail || FRIENDLY_ERROR);
+    }
     return { data: (await res.json()) as T, live: true };
-  } catch {
-    return { data: fallback(), live: false };
+  } catch (e) {
+    throw e instanceof ApiError ? e : new ApiError(FRIENDLY_ERROR);
   } finally {
     clearTimeout(t);
   }
 }
+export const errorText = (e: unknown) => (e instanceof Error && e.message ? e.message : FRIENDLY_ERROR);
 
 const json = (body: unknown): RequestInit => ({
   method: "POST",
@@ -45,21 +56,22 @@ const maxLine = (c: { name: string; quote: string }) =>
   `Hey! I was going through the lab notes and I'm pretty sure of this: "${c.quote}" That's right, isn't it? Can you check me on ${c.name.toLowerCase()}?`;
 
 /* ---------- student ---------- */
-export async function submitWork(student: string, work: string, rubric: string = MODULE_RUBRIC_TEXT) {
+export async function submitWork(student: string, work: string | File, rubric: string = MODULE_RUBRIC_TEXT) {
   const form = new FormData();
   form.append("student", student);
-  form.append("work_text", work);
+  if (typeof work === "string") form.append("work_text", work);
+  else form.append("work_file", work, work.name);
   form.append("rubric_text", rubric);
   return call<Session>("/api/submit", { method: "POST", body: form }, () => ({
     ...clone(SESSION_FIXTURE), student, viva_transcript: [], max_transcript: [],
-  })).then(async (r) => { if (!r.live) await delay(1400); return r; });
+  }), 30000).then(async (r) => { if (!r.live) await delay(1400); return r; });
 }
 
 /** Weekly lab feedback: real Checker if the backend is up, otherwise a simple local check. */
 export async function checkLab(student: string, notes: string, lab: Lab): Promise<{ rubric: RubricCriterion[]; live: boolean }> {
   const objectives = lab.concepts.map((c) => `${c.name} (${Math.round(100 / lab.concepts.length)}%): ${c.claim}`).join("\n");
   const r = await submitWork(student, notes, objectives);
-  if (r.live && r.data.rubric.length) return { rubric: r.data.rubric, live: true };
+  if (r.live) return { rubric: r.data.rubric, live: true };
   const sentences = notes.split(/(?<=[.!?])\s+/);
   const rubric = lab.concepts.map((c, i): RubricCriterion => {
     const re = new RegExp(c.kw ?? "$^", "i");
@@ -121,7 +133,7 @@ export async function chat(kind: "viva" | "max", session: Session, text: string 
       }
     }
     return clone(s);
-  }).then(async (r) => { if (!r.live) await delay(700); return r; });
+  }, 30000).then(async (r) => { if (!r.live) await delay(700); return r; });
 }
 
 export async function rephrase(session: Session) {
@@ -132,7 +144,7 @@ export async function rephrase(session: Session) {
   });
 }
 
-export const getBrief = () => call<{ text: string }>("/api/brief", undefined, () => ({ text: "" }));
+export const getBriefText = () => call<{ text: string }>("/api/brief", undefined, () => ({ text: BRIEF_TEXT.join("\n") }));
 
 export async function askBrief(student: string, question: string) {
   return call<BriefAnswer>("/api/brief/ask", json({ student, question }), () => {
@@ -155,49 +167,31 @@ export const answerCluster = (cluster_id: string, text: string) =>
     mockClusters = mockClusters.map((c) => (c.id === cluster_id ? { ...c, status: "answered", lecturer_answer: text } : c));
     return clone(mockClusters.find((c) => c.id === cluster_id)!);
   });
+export const getReports = () => call<Session[]>("/api/lecturer/reports", undefined, () => []);
 export const getHeatmap = () => call<HeatmapRow[]>("/api/lecturer/heatmap", undefined, () => clone(HEATMAP_FIXTURE));
 export const getAgents = () =>
   call<{ agents: AgentCard[]; log: GuardianEvent[] }>("/api/agents", undefined, () => clone(AGENTS_FIXTURE));
 
-export type VoiceSource = "elevenlabs" | "browser" | "none";
+export type VoiceSource = "elevenlabs" | "none";
 let currentAudio: HTMLAudioElement | null = null;
 
 export function stopSpeaking() {
   try { currentAudio?.pause(); currentAudio = null; } catch { /* ignore */ }
-  try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
 }
 
-/**
- * Speaks `text` and resolves when it has finished.
- * Uses ElevenLabs through the backend (/api/tts, the API key never reaches the browser),
- * and falls back to the browser's own en-GB voice if the backend or key is unavailable.
- */
+/** Speaks through ElevenLabs (backend /api/tts, key stays server side). On 503 or any failure it quietly stays text only. */
 export async function speak(text: string, voice: "examiner" | "max"): Promise<VoiceSource> {
   stopSpeaking();
   try {
     const res = await fetch(`${API}/api/tts`, json({ text, voice }));
-    if (res.ok && (res.headers.get("content-type") ?? "").includes("audio")) {
-      const url = URL.createObjectURL(await res.blob());
-      const audio = new Audio(url);
-      currentAudio = audio;
-      await new Promise<void>((resolve, reject) => {
-        audio.onended = () => resolve();
-        audio.onerror = () => reject(new Error("audio"));
-        audio.play().catch(reject);
-      });
-      return "elevenlabs";
-    }
-  } catch { /* fall through to browser voice */ }
-  try {
-    if (!("speechSynthesis" in window)) return "none";
-    await new Promise<void>((resolve) => {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-GB";
-      u.pitch = voice === "max" ? 1.15 : 1;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
-      window.speechSynthesis.speak(u);
+    if (!res.ok || !(res.headers.get("content-type") ?? "").includes("audio")) return "none";
+    const audio = new Audio(URL.createObjectURL(await res.blob()));
+    currentAudio = audio;
+    await new Promise<void>((resolve, reject) => {
+      audio.onended = () => resolve();
+      audio.onerror = () => reject(new Error("audio"));
+      audio.play().catch(reject);
     });
-    return "browser";
+    return "elevenlabs";
   } catch { return "none"; }
 }

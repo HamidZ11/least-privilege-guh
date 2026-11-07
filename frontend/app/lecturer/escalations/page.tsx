@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Inbox, Megaphone, Users } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Card, Empty, PageTitle, PrimaryButton, Skeleton } from "@/components/ui";
-import { answerCluster } from "@/lib/viva";
+import { answerCluster, errorText } from "@/lib/viva";
 
 export default function Escalations() {
-  const { clusters, refreshQueue, notify } = useApp();
+  const { clusters, queueError, refreshQueue, notify } = useApp();
+  const [sendErr, setSendErr] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -25,9 +26,11 @@ export default function Escalations() {
 
   return (
     <>
-      <PageTitle title="Escalations" sub="Questions the brief couldn't answer, grouped by what students actually mean. Answer once and everyone is told." />
-      {!loaded && <Skeleton className="h-40 w-full" />}
-      {loaded && sorted.length === 0 && <Empty icon={<Inbox size={18} />} title="Nothing to answer" body="When students ask something the brief doesn't cover, it appears here." />}
+      <PageTitle title="Student questions" sub="Questions the brief couldn't answer, grouped by what students actually mean. Answer once and everyone is told." />
+      {queueError && <div className="mb-4 flex items-center gap-3 rounded border border-[#f5c2bd] bg-[#fff5f4] px-4 py-3 text-sm" role="alert"><span className="flex-1 text-[#b42318]">Couldn't reach Viva. Try again.</span><button onClick={refreshQueue} className="rounded border border-line bg-white px-3 py-1.5 font-medium hover:bg-[#f6f6f4]">Retry</button></div>}
+      {sendErr && <p className="mb-3 text-sm text-[#b42318]" role="alert">{sendErr}</p>}
+      {!loaded && !queueError && <Skeleton className="h-40 w-full" />}
+      {loaded && !queueError && sorted.length === 0 && <Empty icon={<Inbox size={18} />} title="Nothing to answer" body="When students ask something the brief doesn't cover, it appears here." />}
       <div className="space-y-4">
         {sorted.map((c) => (
           <Card key={c.id} className="fadein p-5">
