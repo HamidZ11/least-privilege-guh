@@ -110,10 +110,6 @@ def scan_input(text: str) -> dict[str, Any]:
     return {"text": _INJECTION.sub("", text), "flags": flags}
 
 
-def note_agent(name: str, action: str, detail: str) -> None:
-    _record(name, action, detail)
-
-
 def check_output(text: str, mode: str) -> str:
     _record("Guardian", "passed", f"Stub output check ({mode})")
     return text

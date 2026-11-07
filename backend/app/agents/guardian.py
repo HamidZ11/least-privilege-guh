@@ -433,10 +433,11 @@ def record_call(agent: str, action: str, detail: str) -> None:
 
     record_call(agent: str, action: str, detail: str) -> None
 
-    action must be input_scanned, injection_blocked, output_blocked, escalated,
-    or passed. detail is truncated and must not include the submission.
+    Guardian's action must be input_scanned, injection_blocked, output_blocked,
+    escalated, or passed. Other agents can log any action string. detail is
+    truncated and must not include the submission.
     """
-    if action not in _ACTIONS:
+    if agent == "Guardian" and action not in _ACTIONS:
         raise ValueError(f"Unknown guardian action: {action}")
     if agent not in _cards:
         _cards[agent] = {"name": agent, "role": agent, "calls": 0, "last_action": "idle"}
