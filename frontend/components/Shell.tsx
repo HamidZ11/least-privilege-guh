@@ -60,7 +60,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           ] },
         ];
 
-  const current = groups.flatMap((g) => g.items).find((i) => path === i.href || path.startsWith(i.href + "/"))?.label ?? "Viva";
+  const current = groups.flatMap((g) => g.items).find((i) => path === i.href || path.startsWith(i.href + "/"))?.label ?? "Socratic";
   const mine = notifs.filter((n) => n.to === role);
   const unread = mine.filter((n) => !n.read).length;
   const switchRole = (r: typeof role) => {
@@ -73,7 +73,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <aside className="viva-sidebar no-print flex min-h-0 shrink-0 flex-col border-r border-line bg-[#fafafa]" aria-label="Module menu">
         <div className="flex h-[60px] shrink-0 items-center gap-2.5 px-4">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-white"><Crest /></span>
-          <span className="text-base font-semibold tracking-tight">Viva</span>
+          <span className="text-base font-semibold tracking-tight">Socratic</span>
           <span className="ml-auto rounded border border-line bg-white px-1.5 py-0.5 text-[10px] text-ink2">CMP2045</span>
         </div>
         <div className="mx-3 mb-5 flex rounded-lg border border-line bg-[#f0f0f0] p-0.5 text-xs" role="tablist" aria-label="View as">
