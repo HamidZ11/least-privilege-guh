@@ -1,419 +1,244 @@
 {
-  "module": "CMP2045",
-  "concepts": [
-    "Correlation vs causation",
-    "Sampling",
-    "Self-report bias",
-    "Cross-sectional design",
-    "Mediating variables"
-  ],
-  "rubric_criteria": [
-    "Critical analysis",
-    "Understanding of methods",
-    "Use of sources",
-    "Presentation"
-  ],
-  "note": "Demo data only",
   "students": [
     {
-      "id": "mock-11",
-      "student": "Katie O'Neill",
+      "id": "demo-001",
+      "name": "Demo Student 01",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "amber",
+        "Cross-sectional design": "red",
+        "Mediating variables": "green"
+      }
+    },
+    {
+      "id": "demo-002",
+      "name": "Demo Student 02",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "red",
+        "Cross-sectional design": "amber",
+        "Mediating variables": "amber"
+      }
+    },
+    {
+      "id": "demo-003",
+      "name": "Demo Student 03",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "green",
+        "Cross-sectional design": "red",
+        "Mediating variables": "red"
+      }
+    },
+    {
+      "id": "demo-004",
+      "name": "Demo Student 04",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "amber",
+        "Cross-sectional design": "green",
+        "Mediating variables": "amber"
+      }
+    },
+    {
+      "id": "demo-005",
+      "name": "Demo Student 05",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "red",
+        "Cross-sectional design": "amber",
+        "Mediating variables": "green"
+      }
+    },
+    {
+      "id": "demo-006",
+      "name": "Demo Student 06",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "amber",
+        "Cross-sectional design": "red",
+        "Mediating variables": "red"
+      }
+    },
+    {
+      "id": "demo-007",
+      "name": "Demo Student 07",
       "module": "CMP2045",
       "concepts": {
         "Correlation vs causation": "red",
         "Sampling": "amber",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "green",
-        "Mediating variables": "red"
-      },
-      "rubric": [
-        "amber",
-        "red",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "completed",
-      "flags": 0
+        "Self-report bias": "green",
+        "Cross-sectional design": "amber",
+        "Mediating variables": "green"
+      }
     },
     {
-      "id": "mock-16",
-      "student": "Priya Desai",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "amber",
-        "Sampling": "green",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "red",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "amber",
-        "green",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "completed",
-      "flags": 0
-    },
-    {
-      "id": "mock-02",
-      "student": "Ben Hartley",
+      "id": "demo-008",
+      "name": "Demo Student 08",
       "module": "CMP2045",
       "concepts": {
         "Correlation vs causation": "red",
-        "Sampling": "red",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "red",
+        "Sampling": "green",
+        "Self-report bias": "red",
+        "Cross-sectional design": "green",
         "Mediating variables": "amber"
-      },
-      "rubric": [
-        "red",
-        "red",
-        "red",
-        "amber"
-      ],
-      "viva_status": "in_progress",
-      "flags": 0
+      }
     },
     {
-      "id": "mock-04",
-      "student": "Daniel Reyes",
+      "id": "demo-009",
+      "name": "Demo Student 09",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "amber",
+        "Cross-sectional design": "red",
+        "Mediating variables": "green"
+      }
+    },
+    {
+      "id": "demo-010",
+      "name": "Demo Student 10",
       "module": "CMP2045",
       "concepts": {
         "Correlation vs causation": "red",
         "Sampling": "green",
         "Self-report bias": "green",
         "Cross-sectional design": "amber",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "amber",
-        "green",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "not_started",
-      "flags": 0
+        "Mediating variables": "red"
+      }
     },
     {
-      "id": "mock-18",
-      "student": "Rosa Fernandez",
+      "id": "demo-011",
+      "name": "Demo Student 11",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "red",
+        "Cross-sectional design": "red",
+        "Mediating variables": "amber"
+      }
+    },
+    {
+      "id": "demo-012",
+      "name": "Demo Student 12",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "red",
+        "Sampling": "green",
+        "Self-report bias": "amber",
+        "Cross-sectional design": "green",
+        "Mediating variables": "green"
+      }
+    },
+    {
+      "id": "demo-013",
+      "name": "Demo Student 13",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "amber",
+        "Sampling": "green",
+        "Self-report bias": "green",
+        "Cross-sectional design": "red",
+        "Mediating variables": "amber"
+      }
+    },
+    {
+      "id": "demo-014",
+      "name": "Demo Student 14",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "amber",
+        "Sampling": "green",
+        "Self-report bias": "amber",
+        "Cross-sectional design": "amber",
+        "Mediating variables": "red"
+      }
+    },
+    {
+      "id": "demo-015",
+      "name": "Demo Student 15",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "amber",
+        "Sampling": "green",
+        "Self-report bias": "red",
+        "Cross-sectional design": "green",
+        "Mediating variables": "green"
+      }
+    },
+    {
+      "id": "demo-016",
+      "name": "Demo Student 16",
+      "module": "CMP2045",
+      "concepts": {
+        "Correlation vs causation": "amber",
+        "Sampling": "red",
+        "Self-report bias": "amber",
+        "Cross-sectional design": "red",
+        "Mediating variables": "amber"
+      }
+    },
+    {
+      "id": "demo-017",
+      "name": "Demo Student 17",
       "module": "CMP2045",
       "concepts": {
         "Correlation vs causation": "green",
         "Sampling": "green",
         "Self-report bias": "green",
-        "Cross-sectional design": "red",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "amber",
-        "green",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "not_started",
-      "flags": 0
-    },
-    {
-      "id": "mock-13",
-      "student": "Maya Singh",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "amber",
-        "Sampling": "green",
-        "Self-report bias": "amber",
         "Cross-sectional design": "amber",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "green",
-        "green",
-        "green",
-        "amber"
-      ],
-      "viva_status": "completed",
-      "flags": 0
+        "Mediating variables": "green"
+      }
     },
     {
-      "id": "mock-07",
-      "student": "Grace Mitchell",
+      "id": "demo-018",
+      "name": "Demo Student 18",
       "module": "CMP2045",
       "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "green",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "red",
-        "Mediating variables": "red"
-      },
-      "rubric": [
-        "amber",
-        "amber",
-        "amber",
-        "red"
-      ],
-      "viva_status": "completed",
-      "flags": 0
-    },
-    {
-      "id": "mock-08",
-      "student": "Hassan Ali",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "green",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "red",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "amber",
-        "red",
-        "red",
-        "amber"
-      ],
-      "viva_status": "not_started",
-      "flags": 0
-    },
-    {
-      "id": "mock-19",
-      "student": "Sanjay Kapoor",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "amber",
-        "Sampling": "green",
-        "Self-report bias": "green",
-        "Cross-sectional design": "green",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "green",
-        "amber",
-        "amber",
-        "green"
-      ],
-      "viva_status": "completed",
-      "flags": 0
-    },
-    {
-      "id": "mock-17",
-      "student": "Quinn Davies",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "amber",
+        "Correlation vs causation": "green",
         "Sampling": "amber",
         "Self-report bias": "red",
         "Cross-sectional design": "green",
-        "Mediating variables": "red"
-      },
-      "rubric": [
-        "amber",
-        "red",
-        "red",
-        "red"
-      ],
-      "viva_status": "not_started",
-      "flags": 0
-    },
-    {
-      "id": "mock-09",
-      "student": "Imogen Clarke",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "amber",
-        "Self-report bias": "green",
-        "Cross-sectional design": "amber",
-        "Mediating variables": "red"
-      },
-      "rubric": [
-        "red",
-        "red",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "not_started",
-      "flags": 0
-    },
-    {
-      "id": "mock-03",
-      "student": "Chloe Nguyen",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "red",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "green",
-        "Mediating variables": "red"
-      },
-      "rubric": [
-        "red",
-        "amber",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "completed",
-      "flags": 0
-    },
-    {
-      "id": "mock-06",
-      "student": "Farid Rahman",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "green",
-        "Self-report bias": "green",
-        "Cross-sectional design": "red",
         "Mediating variables": "amber"
-      },
-      "rubric": [
-        "amber",
-        "amber",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "completed",
-      "flags": 0
+      }
     },
     {
-      "id": "mock-15",
-      "student": "Olivia Turner",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "amber",
-        "Sampling": "green",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "green",
-        "Mediating variables": "green"
-      },
-      "rubric": [
-        "green",
-        "green",
-        "amber",
-        "green"
-      ],
-      "viva_status": "completed",
-      "flags": 2
-    },
-    {
-      "id": "mock-20",
-      "student": "Tara Hughes",
+      "id": "demo-019",
+      "name": "Demo Student 19",
       "module": "CMP2045",
       "concepts": {
         "Correlation vs causation": "green",
         "Sampling": "green",
-        "Self-report bias": "green",
-        "Cross-sectional design": "green",
-        "Mediating variables": "red"
-      },
-      "rubric": [
-        "amber",
-        "green",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "not_started",
-      "flags": 0
-    },
-    {
-      "id": "mock-12",
-      "student": "Liam Patel",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "red",
         "Self-report bias": "amber",
         "Cross-sectional design": "green",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "red",
-        "amber",
-        "red",
-        "amber"
-      ],
-      "viva_status": "not_started",
-      "flags": 0
+        "Mediating variables": "red"
+      }
     },
     {
-      "id": "mock-14",
-      "student": "Noah Evans",
+      "id": "demo-020",
+      "name": "Demo Student 20",
       "module": "CMP2045",
       "concepts": {
-        "Correlation vs causation": "amber",
-        "Sampling": "green",
+        "Correlation vs causation": "green",
+        "Sampling": "amber",
         "Self-report bias": "green",
         "Cross-sectional design": "amber",
         "Mediating variables": "green"
-      },
-      "rubric": [
-        "green",
-        "amber",
-        "green",
-        "green"
-      ],
-      "viva_status": "completed",
-      "flags": 1
-    },
-    {
-      "id": "mock-05",
-      "student": "Eleanor Walsh",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "red",
-        "Self-report bias": "green",
-        "Cross-sectional design": "red",
-        "Mediating variables": "red"
-      },
-      "rubric": [
-        "red",
-        "red",
-        "red",
-        "red"
-      ],
-      "viva_status": "completed",
-      "flags": 0
-    },
-    {
-      "id": "mock-01",
-      "student": "Amara Okafor",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "amber",
-        "Self-report bias": "amber",
-        "Cross-sectional design": "red",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "amber",
-        "red",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "completed",
-      "flags": 0
-    },
-    {
-      "id": "mock-10",
-      "student": "Jamal Brown",
-      "module": "CMP2045",
-      "concepts": {
-        "Correlation vs causation": "red",
-        "Sampling": "green",
-        "Self-report bias": "green",
-        "Cross-sectional design": "green",
-        "Mediating variables": "amber"
-      },
-      "rubric": [
-        "amber",
-        "amber",
-        "amber",
-        "amber"
-      ],
-      "viva_status": "completed",
-      "flags": 1
+      }
     }
   ]
 }

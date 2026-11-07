@@ -1,4 +1,4 @@
-"""ElevenLabs text-to-speech: two voices, in-memory cache.
+"""ElevenLabs text-to-speech: two voices, memory + disk cache.
 
 synthesize() raises TTSError on a missing key or any failure. /api/tts turns that
 into a 503 and the frontend falls back to text only. Keys are never logged.
@@ -7,6 +7,7 @@ into a 503 and the frontend falls back to text only. Keys are never logged.
 import hashlib
 import logging
 import os
+from pathlib import Path
 
 import httpx
 
@@ -21,13 +22,34 @@ DEFAULT_VOICES = {
 }
 DEFAULT_MODEL = "eleven_flash_v2_5"  # low latency
 API_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-TIMEOUT_SECONDS = 20.0
+TIMEOUT_SECONDS = 8.0  # fail fast so the UI falls back to text
+CACHE_DIR = Path(__file__).parent / ".tts_cache"  # audio here is gitignored
 
 _cache: dict[str, bytes] = {}
 
 
 class TTSError(Exception):
     """Speech could not be produced. The message is safe to show."""
+
+
+def _read_disk(key: str) -> bytes | None:
+    try:
+        return (CACHE_DIR / f"{key}.mp3").read_bytes() or None
+    except OSError:
+        return None
+
+
+def _write_disk(key: str, audio: bytes) -> None:
+    # A disk problem must never break speech, so errors are ignored. Write then
+    # rename so a crash can't leave a half-written file to be served later.
+    try:
+        CACHE_DIR.mkdir(exist_ok=True)
+        (CACHE_DIR / ".gitignore").write_text("*\n!.gitignore\n")
+        tmp = CACHE_DIR / f"{key}.tmp"
+        tmp.write_bytes(audio)
+        tmp.replace(CACHE_DIR / f"{key}.mp3")
+    except OSError as error:
+        logger.warning("Could not write TTS cache: %s", type(error).__name__)
 
 
 def _voice_id(voice: str) -> str:
@@ -49,6 +71,10 @@ def synthesize(text: str, voice: str) -> bytes:
     key = hashlib.sha256(f"{voice_id}|{model}|{text}".encode()).hexdigest()
     if key in _cache:
         return _cache[key]
+    audio = _read_disk(key)
+    if audio is not None:
+        _cache[key] = audio
+        return audio
 
     try:
         response = httpx.post(
@@ -66,4 +92,5 @@ def synthesize(text: str, voice: str) -> bytes:
         raise TTSError("Voice is unavailable") from None
 
     _cache[key] = response.content
+    _write_disk(key, response.content)
     return response.content
