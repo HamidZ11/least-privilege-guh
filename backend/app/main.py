@@ -34,7 +34,7 @@ answer_cluster = resolve("app.brief", "answer")
 brief_broadcasts = resolve("app.brief", "broadcasts")
 extract_concepts = resolve("app.agents.reader", "extract_concepts", needs_key=True)
 extract_rubric = resolve("app.agents.reader", "extract_rubric", needs_key=True)
-check_rubric = resolve("app.agents.checker", "check_rubric")
+check_rubric = resolve("app.agents.checker", "check_rubric", needs_key=True)
 viva_turn = resolve("app.agents.examiner", "viva_turn", needs_key=True)
 max_turn = resolve("app.agents.examiner", "max_turn", needs_key=True)
 rephrase_turn = resolve("app.agents.examiner", "rephrase", needs_key=True)
@@ -123,8 +123,10 @@ def submit(
     rubric = _read_text(rubric_file, rubric_text, "rubric")
     clean_text = scan["text"]
 
-    criteria = check_rubric(extract_rubric(rubric), clean_text)
-    concepts = seed_statuses(extract_concepts(clean_text), criteria)
+    concepts = extract_concepts(clean_text)
+    quotes = [concept["quote"] for concept in concepts]
+    criteria = check_rubric(extract_rubric(rubric), clean_text, quotes=quotes)
+    concepts = seed_statuses(concepts, criteria)
 
     session = create_session()
     session.update(
