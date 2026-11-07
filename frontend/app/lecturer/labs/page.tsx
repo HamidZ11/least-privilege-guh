@@ -59,7 +59,7 @@ export default function LecturerLabs() {
             <GhostButton type="button" onClick={() => { setWeek(nextWeek); setTitle("Statistical significance"); setTopics("p-values, effect size"); setNotes("This week we look at what a p-value does and does not tell us, and why effect size matters alongside it."); }}>Fill demo lab</GhostButton>
             <PrimaryButton onClick={publish} disabled={!title.trim() || !topics.trim()}><Upload size={14} /> Publish to students</PrimaryButton>
           </div>
-          {done && <p className="fadein mt-3 flex items-center gap-2 rounded bg-[#e6f4ec] px-3 py-2 text-sm" role="status"><CheckCircle2 size={14} className="text-green" /> {done} published. Students have been notified.</p>}
+          {done && <p className="fadein mt-3 flex items-center gap-2 rounded bg-[#e6f4ec] px-3 py-2 text-sm" role="status"><CheckCircle2 size={14} className="text-green" /> {done} published. Students have been notified. <span className="text-ink2">Saved for this demo (stored in this browser only).</span></p>}
         </Card>
 
         <Card className="p-5">

@@ -73,6 +73,7 @@ body {
 
 /* Download PDF: print only the rubric report */
 @media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { background: #fff; }
   .no-print { display: none !important; }
   .print-area { box-shadow: none !important; border: none !important; }

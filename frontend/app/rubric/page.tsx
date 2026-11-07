@@ -7,10 +7,10 @@ import { ArrowRight, ClipboardCheck, Download, Loader2, Mic, UserCheck } from "l
 import { useApp } from "@/components/AppProvider";
 import { Card, Confidence, Dot, GhostButton, PageTitle, Pill, PrimaryButton, STATUS_COLOR } from "@/components/ui";
 import type { Assessment } from "@/lib/course";
-import { checkLab } from "@/lib/viva";
+import { checkLab, errorText } from "@/lib/viva";
 import type { RubricCriterion } from "@/lib/types";
 
-function Criterion({ r, practise }: { r: RubricCriterion; practise?: boolean }) {
+function Criterion({ r, practise, practiseHref }: { r: RubricCriterion; practise?: boolean; practiseHref?: string }) {
   return (
     <Card className="fadein overflow-hidden">
       <div className="flex">
@@ -23,9 +23,9 @@ function Criterion({ r, practise }: { r: RubricCriterion; practise?: boolean }) 
             <Confidence value={r.confidence} />
           </div>
           <p className="leading-relaxed">{r.gap_note}</p>
-          {r.quote && <p className="border-l-2 border-line pl-3 text-xs text-ink2">You wrote: “{r.quote}”</p>}
+          {r.quote && <p className="border-l-2 border-line pl-3 text-xs italic text-ink2">You wrote: “{r.quote}”</p>}
           {practise && r.status !== "green" && (
-            <Link href="/teach" className="no-print inline-flex items-center gap-1 text-sm font-medium text-[#14284b]">Practise this with Max <ArrowRight size={14} /></Link>
+            <Link href={practiseHref ?? "/teach"} className="no-print inline-flex items-center gap-1 text-sm font-medium text-[#14284b]">Practise with Max <ArrowRight size={14} /></Link>
           )}
         </div>
       </div>
@@ -38,14 +38,21 @@ function LabFeedback() {
   const [labId, setLabId] = useState(labs[0]?.id ?? "");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [labErr, setLabErr] = useState<string | null>(null);
   const lab = labs.find((l) => l.id === labId) ?? labs[0];
   if (!lab) return null;
   const result = labFeedback[lab.id];
 
   const run = async () => {
     setBusy(true);
-    const { rubric } = await checkLab(student, notes, lab);
-    saveLabFeedback(lab.id, rubric);
+    setLabErr(null);
+    try {
+      const { rubric } = await checkLab(student, notes, lab);
+      saveLabFeedback(lab.id, rubric);
+      notify("student", `Feedback on your Week ${lab.week} lab notes is ready.`, "/rubric");
+    } catch (e) {
+      setLabErr(errorText(e));
+    }
     setBusy(false);
   };
 
@@ -68,9 +75,10 @@ function LabFeedback() {
           placeholder={`Your Week ${lab.week} lab work or notes…`}
           className="w-full resize-none rounded border border-line px-3 py-2 outline-none focus:border-ink3"
         />
+        {labErr && <p className="mt-2 text-sm text-[#b42318]" role="alert">{labErr}</p>}
         <div className="mt-3 flex justify-end">
-          <PrimaryButton onClick={async () => { await run(); notify("student", `Feedback on your Week ${lab.week} lab notes is ready.`, "/rubric"); }} disabled={busy || !notes.trim()}>
-            {busy && <Loader2 size={14} className="animate-spin" />}{busy ? "Checking…" : "Check my lab notes"}
+          <PrimaryButton onClick={run} disabled={busy || !notes.trim()}>
+            {busy && <Loader2 size={14} className="animate-spin" />}{busy ? "Checking…" : labErr ? "Retry" : "Check my lab notes"}
           </PrimaryButton>
         </div>
       </Card>
@@ -95,7 +103,8 @@ function AssessmentFeedback({ a }: { a: Assessment }) {
         <h3 className="flex-1 text-base font-semibold">{a.title}</h3>
         {a.status === "viva_due" && <Link href={`/submit/viva/${a.id}`}><PrimaryButton><Mic size={14} /> Do your viva</PrimaryButton></Link>}
       </div>
-      {s.rubric.map((r) => <Criterion key={r.id} r={r} practise />)}
+      {s.id.startsWith("seed-") && <p className="text-xs text-ink3">Example data</p>}
+      {s.rubric.map((r) => <Criterion key={r.id} r={r} practise practiseHref={a.kind === "final" ? "/teach?a=final" : undefined} />)}
 
       <Card className="p-5">
         <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Mic size={14} /> Viva feedback</h4>

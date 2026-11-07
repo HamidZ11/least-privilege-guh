@@ -1,38 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, CheckCircle2, Send, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Bell, CheckCircle2, RotateCcw, Send, Users } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Card, Confidence, PageTitle, PrimaryButton } from "@/components/ui";
-import { BRIEF_TEXT } from "@/lib/fixtures";
-import { askBrief, getBroadcasts } from "@/lib/viva";
+import { Card, Confidence, GhostButton, PageTitle, PrimaryButton, Skeleton } from "@/components/ui";
+import { askBrief, errorText, getBriefText, getBroadcasts } from "@/lib/viva";
 import type { BriefAnswer, Cluster } from "@/lib/types";
 
 type Exchange = { q: string; a: BriefAnswer };
 
 export default function Brief() {
   const { student } = useApp();
+  const [brief, setBrief] = useState<string[] | null>(null);
+  const [briefErr, setBriefErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [askErr, setAskErr] = useState<string | null>(null);
   const [log, setLog] = useState<Exchange[]>([]);
   const [broadcasts, setBroadcasts] = useState<Cluster[]>([]);
 
+  const loadBrief = useCallback(() => {
+    setBriefErr(null);
+    getBriefText().then((r) => setBrief(r.data.text.split("\n").map((l) => l.trim()).filter(Boolean))).catch((e) => setBriefErr(errorText(e)));
+  }, []);
+  useEffect(() => { loadBrief(); }, [loadBrief]);
+
   useEffect(() => {
-    const load = () => getBroadcasts(student).then((r) => setBroadcasts(r.data));
+    // Banners from the module leader. A failed poll just keeps what is already shown.
+    const load = () => getBroadcasts(student).then((r) => setBroadcasts(r.data)).catch(() => {});
     load();
     const t = setInterval(load, 3000);
     return () => clearInterval(t);
   }, [student]);
 
-  const highlight = log.findLast((e) => e.a.status === "answered")?.a.citation ?? null;
+  const highlight = log.find((e) => e.a.status === "answered")?.a.citation ?? null;
 
   const ask = async () => {
     const question = q.trim();
     if (!question) return;
     setBusy(true);
-    setQ("");
-    const { data } = await askBrief(student, question);
-    setLog((l) => [{ q: question, a: data }, ...l]);
+    setAskErr(null);
+    try {
+      const { data } = await askBrief(student, question);
+      setLog((l) => [{ q: question, a: data }, ...l]);
+      setQ("");
+    } catch (e) {
+      setAskErr(errorText(e));
+    }
     setBusy(false);
   };
 
@@ -52,15 +66,24 @@ export default function Brief() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
         <Card className="p-6">
-          <h2 className="mb-4 text-base font-semibold">{BRIEF_TEXT[0]}</h2>
-          <div className="space-y-3 leading-relaxed">
-            {BRIEF_TEXT.slice(1).map((line) => {
-              const hit = highlight && line.includes(highlight.slice(0, 30));
-              return (
-                <p key={line} className={hit ? "fadein -mx-2 rounded-md bg-[#fff6e0] px-2 py-1 ring-1 ring-[#e8a33d66]" : ""}>{line}</p>
-              );
-            })}
-          </div>
+          {!brief && !briefErr && <div className="space-y-3"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-full" /></div>}
+          {briefErr && (
+            <div className="flex items-center gap-3">
+              <span className="flex-1 text-[#b42318]" role="alert">{briefErr}</span>
+              <GhostButton onClick={loadBrief}><RotateCcw size={14} /> Retry</GhostButton>
+            </div>
+          )}
+          {brief && (
+            <>
+              <h2 className="mb-4 text-base font-semibold">{brief[0]}</h2>
+              <div className="space-y-3 leading-relaxed">
+                {brief.slice(1).map((line) => {
+                  const hit = highlight && line.includes(highlight.slice(0, 30));
+                  return <p key={line} className={hit ? "fadein -mx-2 rounded bg-[#fff6e0] px-2 py-1 ring-1 ring-[#e8a33d66]" : ""}>{line}</p>;
+                })}
+              </div>
+            </>
+          )}
         </Card>
 
         <div className="space-y-3">
@@ -76,8 +99,9 @@ export default function Brief() {
               placeholder="e.g. Does the 1500 words include references?"
               className="w-full resize-none rounded border border-line px-3 py-2 outline-none focus:border-ink3"
             />
+            {askErr && <p className="mt-2 text-sm text-[#b42318]" role="alert">{askErr}</p>}
             <div className="mt-2 flex justify-end">
-              <PrimaryButton onClick={ask} disabled={busy || !q.trim()}><Send size={14} /> {busy ? "Checking the brief…" : "Ask"}</PrimaryButton>
+              <PrimaryButton onClick={ask} disabled={busy || !q.trim()}><Send size={14} /> {busy ? "Checking the brief…" : askErr ? "Retry" : "Ask"}</PrimaryButton>
             </div>
           </Card>
 
@@ -87,14 +111,14 @@ export default function Brief() {
               {e.a.status === "answered" ? (
                 <>
                   <p className="flex items-start gap-2"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-green" />{e.a.answer}</p>
-                  <p className="border-l-2 border-line pl-3 text-xs text-ink2">From the brief: “{e.a.citation}”</p>
+                  <p className="border-l-2 border-line pl-3 text-xs italic text-ink2">From the brief: “{e.a.citation}”</p>
                   <Confidence value={e.a.confidence} />
                 </>
               ) : (
                 <>
                   <p className="text-ink2">The brief doesn&apos;t say, so I won&apos;t guess.</p>
-                  <p className="flex items-center gap-2 rounded bg-[#f3f3f1] px-3 py-2 text-sm">
-                    <Users size={14} /> Sent to your module leader — <span className="tnum font-medium">{e.a.cluster_size} students</span> asked this
+                  <p className="flex items-center gap-2 rounded bg-[#eef1f7] px-3 py-2 text-sm">
+                    <Users size={14} /> Sent to your module leader. <span className="tnum font-medium">{e.a.cluster_size} students</span> asked this
                   </p>
                 </>
               )}

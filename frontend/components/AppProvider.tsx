@@ -29,6 +29,7 @@ type Ctx = Store & {
   setRole: (r: Role) => void;
   student: string;
   clusters: Cluster[];
+  queueError: boolean;
   refreshQueue: () => void;
   openEscalations: number;
   notify: (to: Role, text: string, href: string, sticky?: boolean) => void;
@@ -36,7 +37,7 @@ type Ctx = Store & {
   unreadFor: (role: Role, hrefPrefix?: string) => number;
   uploadLab: (lab: Omit<Lab, "id" | "uploadedAt" | "isNew">) => void;
   setMasteryFor: (updates: Record<string, Status>) => void;
-  saveLabSession: (s: Session) => void;
+  saveLabSession: (labId: string, s: Session) => void;
   saveLabFeedback: (labId: string, rubric: Session["rubric"]) => void;
   patchAssessment: (id: string, patch: Partial<Assessment>) => void;
   decide: (id: string, d: Decision) => void;
@@ -55,8 +56,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<Store>(fresh);
   const [ready, setReady] = useState(false);
   const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [queueError, setQueueError] = useState(false);
 
-  const refreshQueue = useCallback(() => { getQueue().then((r) => setClusters(r.data)); }, []);
+  const refreshQueue = useCallback(() => { getQueue().then((r) => { setClusters(r.data); setQueueError(false); }).catch(() => setQueueError(true)); }, []);
 
   useEffect(() => {
     refreshQueue();
@@ -108,7 +110,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     store.notifs.filter((n) => n.to === r && !n.read && (!prefix || n.href.startsWith(prefix))).length;
 
   const value: Ctx = useMemo(() => ({
-    ...store, ready, role, setRole, student: "Aisha Khan", clusters, refreshQueue,
+    ...store, ready, role, setRole, student: "Aisha Khan", clusters, queueError, refreshQueue,
     openEscalations: clusters.filter((c) => c.status === "open").length,
     notify, markRead, unreadFor,
     uploadLab: (lab) => {
@@ -118,13 +120,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notify("student", `New weekly lab: Week ${lab.week}, ${lab.title}. Max is ready to practise it with you.`, "/teach");
     },
     setMasteryFor: (u) => update((s) => ({ ...s, mastery: { ...s.mastery, ...u } })),
-    saveLabSession: (sess) => update((s) => ({ ...s, labSessions: { ...s.labSessions, [sess.id]: sess } })),
+    saveLabSession: (labId, sess) => update((s) => ({ ...s, labSessions: { ...s.labSessions, [labId]: sess } })),
     saveLabFeedback: (labId, rubric) => update((s) => ({ ...s, labFeedback: { ...s.labFeedback, [labId]: rubric } })),
     patchAssessment: (id, patch) => update((s) => ({ ...s, assessments: s.assessments.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
     decide: (id, d) => update((s) => ({ ...s, assessments: s.assessments.map((a) => (a.id === id ? { ...a, status: "reviewed", decision: d } : a)) })),
     resetDemo: () => { const f = fresh(); registerLabs(f.labs); setStore(f); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [store, ready, role, clusters, refreshQueue]);
+  }), [store, ready, role, clusters, queueError, refreshQueue]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

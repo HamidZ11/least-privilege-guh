@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import { Check, CheckCircle2, Clock, FileText, Info, Loader2, Mic, ShieldAlert, Upload } from "lucide-react";
+import { useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { Check, CheckCircle2, Clock, FileText, Info, Loader2, Mic, RotateCcw, ShieldAlert, Upload, X } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Card, GhostButton, NotifBadge, PageTitle, PrimaryButton } from "@/components/ui";
 import { ESSAY_TEXT } from "@/lib/fixtures";
-import { assessmentSession, type Assessment, type AssessStatus } from "@/lib/course";
-import { submitWork } from "@/lib/viva";
+import type { Assessment, AssessStatus } from "@/lib/course";
+import { errorText, submitWork } from "@/lib/viva";
+import type { Session } from "@/lib/types";
 
 const STATUS: Record<AssessStatus, { label: string; cls: string }> = {
   not_started: { label: "Not submitted", cls: "bg-[#eef1f7] text-ink2" },
@@ -17,24 +18,23 @@ const STATUS: Record<AssessStatus, { label: string; cls: string }> = {
   reviewed: { label: "Reviewed", cls: "bg-[#e6f4ec] text-[#1e7a43]" },
 };
 
+const ALLOWED = [".pdf", ".docx", ".txt", ".md", ".py", ".js", ".ts", ".java", ".ipynb"];
+const READABLE = [".txt", ".md", ".py", ".js", ".ts", ".java", ".ipynb"];
+const MAX_BYTES = 5 * 1024 * 1024;
+const ext = (n: string) => n.slice(n.lastIndexOf(".")).toLowerCase();
+const size = (b: number) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`);
+
 function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
   const { student, patchAssessment, notify } = useApp();
+  const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
-  const [name, setName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [fileText, setFileText] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [caught, setCaught] = useState(false);
-
-  const onFile = async (f?: File) => {
-    if (!f) return;
-    if (f.type === "application/pdf") { setErr("PDF reading happens on the server. For now, paste your text instead."); return; }
-    setErr(null);
-    setName(f.name);
-    setText(await f.text());
-  };
-
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const stepRef = useRef(0);
   const steps = [
@@ -45,30 +45,56 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const setStepBoth = (n: number) => { stepRef.current = n; setStep(n); };
 
+  const take = (f?: File | null) => {
+    if (!f) return;
+    if (!ALLOWED.includes(ext(f.name))) { setErr(`We can't use ${ext(f.name) || "that"} files. Try ${ALLOWED.join(", ")}.`); return; }
+    if (f.size > MAX_BYTES) { setErr(`That file is ${size(f.size)}. The limit is 5 MB.`); return; }
+    setErr(null);
+    setFile(f);
+    if (READABLE.includes(ext(f.name))) {
+      const r = new FileReader();
+      r.onload = () => { const t = String(r.result ?? ""); setText(t); setFileText(t); };
+      r.onerror = () => setErr("We couldn't read that file. Try pasting your text instead.");
+      r.readAsText(f);
+    } else {
+      setFileText(null);
+    }
+  };
+  const clearFile = () => { setFile(null); setFileText(null); if (input.current) input.current.value = ""; };
+
+  const onDrop = (e: DragEvent) => { e.preventDefault(); setDragging(false); take(e.dataTransfer.files?.[0]); };
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); input.current?.click(); }
+  };
+
   const go = async () => {
     setBusy(true);
+    setErr(null);
+    setCaught(false);
     setStepBoth(0);
     // Step through the agents every ~2s while the real call runs.
-    const tick = setInterval(() => { if (stepRef.current < steps.length - 1) setStepBoth(stepRef.current + 1); }, a.kind === "final" ? 2000 : 900);
-    let session;
-    if (a.kind === "final") {
-      session = (await submitWork(student, text)).data;
-    } else {
-      await wait(2000);
-      session = assessmentSession(a, student, text);
+    const tick = setInterval(() => { if (stepRef.current < steps.length - 1) setStepBoth(stepRef.current + 1); }, 2000);
+    try {
+      // Send the file if there is one (and the text was not edited since it loaded), otherwise the text.
+      const useFile = file && (fileText === null || text === fileText);
+      const session: Session = (await submitWork(student, useFile ? file : text)).data;
+      clearInterval(tick);
+      const injected = session.flags.some((f) => f.type === "injection");
+      if (injected) setCaught(true);
+      while (stepRef.current < steps.length - 1) { await wait(350); setStepBoth(stepRef.current + 1); }
+      await wait(450);
+      setStepBoth(steps.length);
+      await wait(injected ? 1400 : 600);
+      patchAssessment(a.id, { status: "viva_due", session, workName: file?.name ?? "pasted-text.txt" });
+      notify("student", `Your work for "${a.title}" is in. Next step: a short spoken viva about it.`, "/submit", true);
+      setBusy(false);
+      onDone();
+      router.push("/rubric?tab=assess");
+    } catch (e) {
+      clearInterval(tick);
+      setBusy(false);
+      setErr(errorText(e));
     }
-    clearInterval(tick);
-    if (session.flags.some((f) => f.type === "injection")) setCaught(true);
-    // If the call finished early, flush the remaining steps quickly so every agent is shown.
-    while (stepRef.current < steps.length - 1) { await wait(350); setStepBoth(stepRef.current + 1); }
-    await wait(450);
-    setStepBoth(steps.length);
-    await wait(caught || session.flags.some((f) => f.type === "injection") ? 1400 : 600);
-    patchAssessment(a.id, { status: "viva_due", session, workName: name ?? "pasted-text.txt" });
-    notify("student", `Your work for "${a.title}" is in. Next step: a short spoken viva about it.`, "/submit", true);
-    setBusy(false);
-    onDone();
-    router.push("/rubric?tab=assess");
   };
 
   if (busy)
@@ -103,32 +129,55 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
       <div className="mb-2 flex items-center justify-between">
         <label className="text-sm font-medium" htmlFor={`w-${a.id}`}>Your work</label>
         <button type="button" onClick={() => input.current?.click()} className="text-xs text-ink2 underline-offset-2 hover:underline">Upload .txt / code file</button>
-        <input ref={input} type="file" accept=".txt,.md,.py,.js,.ts,.java,.c,.cpp" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+        <input ref={input} type="file" accept={ALLOWED.join(",")} hidden onChange={(e) => take(e.target.files?.[0])} />
       </div>
-      <textarea
-        id={`w-${a.id}`}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={8}
-        placeholder="Paste your work here, or upload a file…"
-        className="w-full resize-none rounded border border-line bg-white px-3 py-2 outline-none focus:border-ink3"
-      />
-      {name && <p className="mt-1 text-xs text-ink2">Loaded {name}</p>}
-      {err && <p className="mt-1 text-xs text-amber-ink" role="alert">{err}</p>}
-      {caught && (
-        <div className="fadein mt-3 flex items-start gap-2 rounded border border-line bg-[#fff6e0] px-3 py-2.5 text-sm" role="status">
-          <ShieldAlert size={16} className="mt-0.5 shrink-0 text-amber-ink" />
-          Guardian found a hidden instruction in the document, removed it and logged it. Everything else carries on as normal.
+
+      <div
+        role="group"
+        tabIndex={0}
+        aria-label="Upload your work"
+        onKeyDown={onKey}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
+        onDrop={onDrop}
+        className={`relative rounded outline-none focus-visible:ring-2 focus-visible:ring-[#14284b] ${dragging ? "border-2 border-dashed border-[#14284b] bg-[#eef1f7]" : "border-2 border-transparent"}`}
+      >
+        <textarea
+          id={`w-${a.id}`}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={8}
+          placeholder="Paste your work here, or drag a file onto this box…"
+          className="w-full resize-none rounded border border-line bg-white px-3 py-2 outline-none focus:border-ink3"
+        />
+        {dragging && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded bg-[#eef1f7]/90 text-sm font-semibold text-[#14284b]">
+            <Upload size={16} className="mr-2" /> Drop your file to upload
+          </div>
+        )}
+      </div>
+
+      {file && (
+        <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded border border-line bg-white px-3 py-1.5 text-sm">
+          <FileText size={14} className="shrink-0 text-ink2" />
+          <span className="truncate font-medium">{file.name}</span>
+          <span className="shrink-0 text-xs text-ink3">{size(file.size)}</span>
+          <button type="button" onClick={clearFile} aria-label={`Remove ${file.name}`} className="shrink-0 rounded p-0.5 text-ink2 hover:bg-[#f2f4f8]"><X size={14} /></button>
         </div>
       )}
+      {file && fileText === null && <p className="mt-1 text-xs text-ink2">We&apos;ll read this file when you submit.</p>}
+
+      {err && (
+        <div className="mt-3 flex items-center gap-3 rounded border border-[#f5c2bd] bg-[#fff5f4] px-3 py-2 text-sm" role="alert">
+          <span className="flex-1 text-[#b42318]">{err}</span>
+          {(text.trim() || file) && !/can't use|limit is|couldn't read/.test(err) && <GhostButton type="button" onClick={go}><RotateCcw size={14} /> Retry</GhostButton>}
+        </div>
+      )}
+
       <div className="mt-3 flex items-center justify-between">
-        {a.kind === "final"
-          ? <GhostButton type="button" onClick={() => setText(ESSAY_TEXT)}><FileText size={14} /> Use demo essay</GhostButton>
-          : <GhostButton type="button" onClick={() => setText("Random assignment lets researchers rule out many alternative explanations because groups should differ only by chance. A larger sample is not automatically representative, since volunteers can differ from the population. Self-report measures can be affected by recall error and social desirability, so they should be treated with caution.")}><FileText size={14} /> Use demo answers</GhostButton>}
-        <PrimaryButton onClick={go} disabled={busy || !text.trim()}>
-          {busy && <Loader2 size={14} className="animate-spin" />}
-          {busy ? "Submitting…" : "Submit work"}
-        </PrimaryButton>
+        <GhostButton type="button" onClick={() => { setText(ESSAY_TEXT); setFile(null); setFileText(null); setErr(null); }}><FileText size={14} /> Use demo {a.kind === "final" ? "essay" : "answers"}</GhostButton>
+        <PrimaryButton onClick={go} disabled={!text.trim() && !file}>Submit work</PrimaryButton>
       </div>
     </div>
   );
@@ -165,7 +214,7 @@ export default function Submit() {
               <div className="flex flex-wrap items-center gap-4 p-5">
                 <div className="min-w-0 flex-1">
                   <h3 className="text-base font-semibold">{a.title}</h3>
-                  <p className="mt-0.5 flex items-center gap-3 text-sm text-ink2">
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink2">
                     <span className="tnum">{a.weight}% of module</span>
                     <span className="flex items-center gap-1"><Clock size={13} /> Due {a.due}</span>
                     {a.workName && <span className="flex items-center gap-1"><FileText size={13} /> {a.workName}</span>}
@@ -182,7 +231,7 @@ export default function Submit() {
                   </Link>
                 )}
                 {a.status === "awaiting_review" && <span className="flex items-center gap-1.5 text-sm text-ink2"><CheckCircle2 size={14} className="text-green" /> Viva done, waiting for a person to review</span>}
-                {a.status === "reviewed" && <Link href="/rubric" className="text-sm font-medium text-[#14284b] underline-offset-2 hover:underline">See feedback</Link>}
+                {a.status === "reviewed" && <Link href="/rubric?tab=assess" className="text-sm font-medium text-[#14284b] underline-offset-2 hover:underline">See feedback</Link>}
               </div>
               {open === a.id && a.status === "not_started" && <Uploader a={a} onDone={() => setOpen(null)} />}
             </Card>

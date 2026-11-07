@@ -16,7 +16,7 @@ export default function VivaPage() {
 
   const onSession = (s: Session) => {
     if (!a) return;
-    if (s.mode === "recap" && a.status === "viva_due") {
+    if ((s.mode === "recap" || s.mode === "done") && a.status === "viva_due") {
       patchAssessment(a.id, { session: s, status: "awaiting_review" });
     } else {
       patchAssessment(a.id, { session: s });
