@@ -8,7 +8,6 @@ the words, so a badly worded reply can't change the flow.
 import logging
 import re
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from app.agents.base import (
@@ -41,7 +40,7 @@ MAX_PERSONA = """You are Max, a friendly university student revising with a clas
 
 MAX_OPEN_PROMPT = f"""{MAX_PERSONA}
 
-The JSON has "concept", with "claim" and "quote" taken from your classmate's essay. Their reasoning there is your own honest belief. State that same reasoning confidently, in your own casual words, as something you're sure about, then ask if they agree.
+The JSON has "concept", with "claim" and "quote" taken from your classmate's essay, and sometimes "student_answer": what your classmate has just said about it. Their reasoning there is your own honest belief. If student_answer is given, start by agreeing with the specific thing they just said, in your own words, and build on it with the same mistaken reasoning. Otherwise state that reasoning confidently in your own casual words. End by asking if they agree.
 
 Believe it fully. Never hint you might be wrong, and never state or imply the correct view.
 
@@ -51,10 +50,10 @@ MAX_PUSHBACK_PROMPT = f"""{MAX_PERSONA}
 
 The JSON has "concept" (your belief, with its claim and quote), "history" and "student_reply". Your classmate hasn't changed your mind, and nothing they said makes you doubt yourself.
 
-Reply like this:
+Reply to the exact thing they just said, never to anything else: pick up their specific point in your own words first, then say why it doesn't change your mind.
 - If they agree with you, be pleased and push the belief further with one more confident reason of your own.
-- If they are vague, disagree without giving a reason, or say something wrong, brush it off cheerfully and repeat your belief more firmly.
-- If they are partly right, shrug that part off and insist your belief still holds.
+- If they are vague, disagree without giving a reason, or say something wrong, say what they said back to them and explain cheerfully why you still think you're right.
+- If they are partly right, acknowledge that exact part and insist your belief still holds anyway.
 
 Write statements only, with no question marks. Never ask them to explain anything, and never ask how or why something works. Never raise anything that could point towards the flaw in your belief, such as other explanations, study design, timing or the direction of an effect. If they raised one of those, dismiss it in a few words without developing it. Never admit any doubt.
 
@@ -256,19 +255,14 @@ def _next_question(session: dict[str, Any]) -> dict[str, Any]:
     return _ask(session, concept, None)
 
 
-def _hand_over_to_max(session: dict[str, Any], concept: dict[str, Any]) -> dict[str, Any]:
-    """Open Max on this concept and keep the viva moving. Max's opening and
-    the next viva question are written at the same time."""
+def _hand_over_to_max(session: dict[str, Any], concept: dict[str, Any], answer: str) -> dict[str, Any]:
+    """Open Max on this concept, picking up the student's own answer. The viva
+    pauses here; the examiner asks the next question once Max is convinced."""
     session["return_to_viva"] = True
     session.setdefault("max_taught", []).append(concept["id"])
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        opening = pool.submit(_max_line, concept)
-        _next_question(session)
-    live = session["mode"] == "viva"
-    _open_max(session, concept, opening.result())
-    if live:
-        session["mode"] = "teach_max"
-    return session
+    session["viva_awaiting_answer"] = False
+    session["mode"] = "teach_max"
+    return _open_max(session, concept, _max_line(concept, answer))
 
 
 def viva_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
@@ -295,23 +289,26 @@ def viva_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
 
     if sum(turn["role"] == "student" for turn in transcript) >= MAX_VIVA_TURNS:
         return _recap(session)
-    if result["status"] == "red" and concept["id"] not in session.get("max_taught", []):
-        return _hand_over_to_max(session, concept)
     if result["status"] != "green" and not session.get("viva_followed_up"):
         session["viva_followed_up"] = True
         return _ask(session, concept, answer)
+    if result["status"] == "red" and concept["id"] not in session.get("max_taught", []):
+        return _hand_over_to_max(session, concept, answer)
     return _next_question(session)
 
 
 # Max
 
 
-def _max_line(concept: dict[str, Any]) -> str:
+def _max_line(concept: dict[str, Any], student_answer: str | None = None) -> str:
+    payload: dict[str, Any] = {"concept": concept}
+    if student_answer:
+        payload["student_answer"] = student_answer
     return _write(
         MaxOpener(),
         "max_says",
         f'I reckon this bit is totally right: "{concept["quote"]}" Don\'t you think?',
-        concept=concept,
+        **payload,
     )
 
 
@@ -387,10 +384,16 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     _say(session, "max_transcript", "max", line, concept["id"])
     session["max_concept_id"] = None
 
-    next_concept = None if session.get("return_to_viva") else _weak_concept(session)
+    if session.get("return_to_viva"):
+        session["return_to_viva"] = False
+        if session.get("viva_over"):
+            session["mode"] = "recap"
+            return session
+        session["mode"] = "viva"
+        return _next_question(session)
+    next_concept = _weak_concept(session)
     if next_concept is not None:
         return _max_open(session, next_concept)
-    session["return_to_viva"] = False
     session["mode"] = _mode_after_max(session)
     return session
 
