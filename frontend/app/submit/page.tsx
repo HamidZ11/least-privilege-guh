@@ -77,7 +77,7 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
     try {
       // Send the file if there is one (and the text was not edited since it loaded), otherwise the text.
       const useFile = file && (fileText === null || text === fileText);
-      const session: Session = (await submitWork(student, useFile ? file : text)).data;
+      const session: Session = (await submitWork(student, useFile ? file : text, a.rubricText)).data;
       clearInterval(tick);
       const injected = session.flags.some((f) => f.type === "injection");
       if (injected) setCaught(true);
@@ -85,8 +85,14 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
       await wait(450);
       setStepBoth(steps.length);
       await wait(injected ? 1400 : 600);
-      patchAssessment(a.id, { status: "viva_due", session, workName: file?.name ?? "pasted-text.txt" });
-      notify("student", `Your work for "${a.title}" is in. Next step: a short spoken viva about it.`, "/submit", true);
+      if (a.vivaRequired === false) {
+        // No viva for this one: it goes straight to the module leader.
+        patchAssessment(a.id, { status: "awaiting_review", session, workName: file?.name ?? "pasted-text.txt" });
+        notify("lecturer", `${student} submitted "${a.title}". Evidence is ready for your decision.`, "/lecturer/reports");
+      } else {
+        patchAssessment(a.id, { status: "viva_due", session, workName: file?.name ?? "pasted-text.txt" });
+        notify("student", `Your work for "${a.title}" is in. Next step: a short spoken viva about it.`, "/submit", true);
+      }
       setBusy(false);
       onDone();
       router.push("/rubric?tab=assess");
@@ -126,6 +132,7 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
 
   return (
     <div className="border-t border-line bg-[#f9fafc] p-5">
+      {a.brief && <p className="mb-3 whitespace-pre-wrap rounded border border-line bg-white px-3 py-2 text-sm"><span className="font-semibold">Brief: </span>{a.brief}</p>}
       <div className="mb-2 flex items-center justify-between">
         <label className="text-sm font-medium" htmlFor={`w-${a.id}`}>Your work</label>
         <button type="button" onClick={() => input.current?.click()} className="text-xs text-ink2 underline-offset-2 hover:underline">Upload .txt / code file</button>
