@@ -75,12 +75,16 @@ class ConceptReader(Agent):
     name = "reader_concepts"
     system_prompt = CONCEPTS_PROMPT
     output_model = ConceptList
+    max_tokens = 3000
+    effort = "low"
 
 
 class RubricReader(Agent):
     name = "reader_rubric"
     system_prompt = RUBRIC_PROMPT
     output_model = CriterionList
+    max_tokens = 2000
+    effort = "low"
 
 
 def extract_concepts(text: str) -> list[dict[str, Any]]:

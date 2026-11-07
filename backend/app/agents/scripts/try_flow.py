@@ -52,9 +52,7 @@ def new_session() -> dict[str, Any]:
     scan = scan_input((SAMPLES / "mock_essay.txt").read_text())
     concepts = extract_concepts(scan["text"])
     criteria = check_rubric(
-        extract_rubric((SAMPLES / "mock_rubric.txt").read_text()),
-        scan["text"],
-        quotes=[concept["quote"] for concept in concepts],
+        extract_rubric((SAMPLES / "mock_rubric.txt").read_text()), scan["text"]
     )
     return {
         "mode": "viva",
