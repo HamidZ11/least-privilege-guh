@@ -214,15 +214,25 @@ def main():
         session_shape(value)
         answered = concept(value, asked.get("id"))
         require(answered and answered["status"] == "red", "confidently wrong viva answer was not red")
-        require(value["mode"] == "teach_max", "red viva answer did not hand over to Max")
-        # Max opens on the red concept and the viva moves on to its next question.
-        max_turn = value["max_transcript"][-1]
-        require(max_turn["role"] == "max" and max_turn["concept_id"] == asked["id"], "Max did not open on the red concept")
-        viva_turn = value["viva_transcript"][-1]
-        require(viva_turn["role"] == "examiner" and viva_turn["concept_id"] != asked["id"], "viva did not ask its next question")
-        return "wrong answer = red; Max opened on it; viva asked its next question"
+        # A first weak answer gets one examiner follow-up on the same concept, not Max.
+        require(value["mode"] == "viva", "first wrong answer handed over to Max instead of a follow-up")
+        turn = value["viva_transcript"][-1]
+        require(turn["role"] == "examiner" and turn["concept_id"] == asked["id"], "examiner did not follow up on the same concept")
+        return "wrong answer = red; examiner followed up on the same concept"
 
     latest = test.step("viva wrong answer", "POST", turn_path("viva"), red_answer, {"text": WRONG_ANSWER})
+
+    def handed_over(value, _):
+        session_shape(value)
+        answered = concept(value, asked.get("id"))
+        require(answered and answered["status"] == "red", "second wrong answer was not red")
+        require(value["mode"] == "teach_max", "second wrong answer did not hand over to Max")
+        max_turn = value["max_transcript"][-1]
+        require(max_turn["role"] == "max" and max_turn["concept_id"] == asked["id"], "Max did not open on the red concept")
+        require(value["viva_transcript"][-1]["role"] == "student", "the examiner asked a new question before Max was convinced")
+        return "second wrong answer = red; Max opened on it; viva paused"
+
+    latest = test.step("viva wrong answer again", "POST", turn_path("viva"), handed_over, {"text": WRONG_ANSWER})
     # Continue through corrections/questions to recap, with a strict bound on calls.
     def continued(value, _):
         session_shape(value)
