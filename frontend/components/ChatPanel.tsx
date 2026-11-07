@@ -190,7 +190,7 @@ export default function ChatPanel({
             <p className="truncate text-xs text-ink2">{subtitle ?? (isMax ? "Max thinks he understands this. Correct him." : "A short conversation about your own work")}</p>
           </div>
           {kind === "viva" && <span className="tnum rounded border border-line px-2 py-1 text-sm" aria-label="Viva timer">{timer}</span>}
-          <div className="flex overflow-hidden rounded-lg border border-line text-xs" role="group" aria-label="Answer mode">
+          <div className="flex rounded border border-line text-sm" role="group" aria-label="Answer mode">
             <button onClick={() => chooseMode("voice")} aria-pressed={mode === "voice"} disabled={voiceOk === false} title={voiceOk === false ? "Voice input works in Chrome" : undefined} className={`flex items-center gap-1.5 px-2.5 py-1.5 ${mode === "voice" ? "bg-btn font-semibold text-white" : "text-ink2 hover:bg-[#f6f6f4]"}`}><Mic size={14} /> Voice</button>
             <button onClick={() => chooseMode("text")} aria-pressed={mode === "text"} className={`flex items-center gap-1.5 px-2.5 py-1.5 ${mode === "text" ? "bg-btn font-semibold text-white" : "text-ink2 hover:bg-[#f6f6f4]"}`}><Keyboard size={14} /> Text</button>
           </div>
@@ -238,7 +238,7 @@ export default function ChatPanel({
         )}
 
         {mode === "voice" && (
-          <div className="flex flex-col items-center gap-2 border-t border-line bg-[#fafafa] px-5 py-3">
+          <div className="flex flex-col items-center gap-2 border-t border-line bg-[#f9fafc] px-5 py-3">
             {needsStart ? (
               <>
                 <PrimaryButton onClick={transcript.length ? resume : begin} className="!h-11 px-5"><Play size={16} /> {transcript.length ? "Resume voice session" : isMax ? "Start talking to Max" : "Start your viva"}</PrimaryButton>
@@ -251,7 +251,7 @@ export default function ChatPanel({
                     onClick={() => (phase === "listening" ? recRef.current?.stop() : phase === "speaking" ? (stopSpeaking(), startListening()) : startListening())}
                     disabled={finished || phase === "thinking"}
                     aria-label={phase === "listening" ? "Stop listening" : "Answer by voice"}
-                    className={`relative flex h-12 w-12 items-center justify-center rounded-full text-white transition-colors disabled:bg-[#cfcfcc] ${phase === "listening" ? "bg-[#e5372a]" : "bg-btn hover:bg-[#292929]"}`}
+                    className={`relative flex h-12 w-12 items-center justify-center rounded-full text-white transition-colors disabled:bg-[#cfcfcc] ${phase === "listening" ? "bg-[#e5372a]" : "bg-btn hover:bg-[#0d1c38]"}`}
                   >
                     {phase === "listening" && <span className="absolute inset-0 animate-ping rounded-full bg-[#e5372a] opacity-30" />}
                     {phase === "listening" ? <MicOff size={20} /> : phase === "thinking" ? <Loader2 size={20} className="animate-spin" /> : phase === "speaking" ? <Volume2 size={20} /> : <Mic size={20} />}
@@ -268,7 +268,7 @@ export default function ChatPanel({
         )}
 
         <form
-          className="m-3 flex flex-wrap items-end gap-2 rounded-xl border border-line bg-white p-3 shadow-[0_1px_4px_#00000004]"
+          className="flex items-end gap-2 border-t border-line p-3"
           onSubmit={(e) => { e.preventDefault(); const v = text.trim(); if (v && !finished && phase !== "thinking") { setText(""); setBegun(true); send(v); } }}
         >
           <textarea
@@ -279,7 +279,7 @@ export default function ChatPanel({
             disabled={finished}
             placeholder={isMax ? "Explain it to Max in your own words…" : "Type your answer…"}
             aria-label="Your answer"
-            className="min-h-[48px] min-w-[160px] flex-1 resize-none rounded-lg border-0 bg-transparent px-1 py-2 outline-none disabled:bg-[#fafafa]"
+            className="min-h-[44px] flex-1 resize-none rounded border border-line px-3 py-2 outline-none focus:border-ink3 disabled:bg-[#f6f6f4]"
           />
           {!isMax && (
             <GhostButton type="button" disabled={busy || finished} onClick={async () => {
