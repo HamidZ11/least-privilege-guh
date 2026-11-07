@@ -153,3 +153,10 @@ export const CLASS_TOPICS: ClassTopic[] = [
 ];
 export const topicStatus = (t: { red: number; amber: number; green: number }): Status =>
   t.red >= t.amber && t.red >= t.green ? "red" : t.amber >= t.green ? "amber" : "green";
+
+/* ---------- backend session creation for labs ---------- */
+/** Text sent to /api/submit so the backend Reader builds concepts (and Max) for a lab. */
+export const labWorkText = (lab: Lab) =>
+  `Week ${lab.week} lab: ${lab.title}\n${lab.summary}\n` + lab.concepts.map((c) => c.misconception).join("\n");
+export const labRubricText = (lab: Lab) =>
+  lab.concepts.map((c) => `${c.name} (${Math.round(100 / lab.concepts.length)}%): ${c.claim}`).join("\n");

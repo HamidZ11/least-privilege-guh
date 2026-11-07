@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${sans.variable} ${serif.variable} h-full antialiased`}>
       <body className="h-full">
         <AppProvider>
-          <Suspense fallback={null}><Shell>{children}</Shell></Suspense>
+          <Suspense fallback={<div className="flex h-full items-center justify-center bg-[#14284b] text-white" role="status"><p className="font-serif text-xl">Viva</p><span className="ml-3 text-sm text-white/70">Loading…</span></div>}><Shell>{children}</Shell></Suspense>
         </AppProvider>
       </body>
     </html>
