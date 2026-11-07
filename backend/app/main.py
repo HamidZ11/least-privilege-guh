@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.agents.reader import extract_concepts, extract_rubric, seed_statuses
+from app.agents.reader import seed_statuses
 from app.llm import LLMError, LLMNotConfiguredError
 from app.parsing import ParseError, extract_text
 from app.routes import router as skeleton_router
@@ -32,10 +32,12 @@ ask_brief = resolve("app.brief", "ask")
 brief_queue = resolve("app.brief", "queue")
 answer_cluster = resolve("app.brief", "answer")
 brief_broadcasts = resolve("app.brief", "broadcasts")
+extract_concepts = resolve("app.agents.reader", "extract_concepts", needs_key=True)
+extract_rubric = resolve("app.agents.reader", "extract_rubric", needs_key=True)
 check_rubric = resolve("app.agents.checker", "check_rubric")
-viva_turn = resolve("app.agents.examiner", "viva_turn")
-max_turn = resolve("app.agents.examiner", "max_turn")
-rephrase_turn = resolve("app.agents.examiner", "rephrase")
+viva_turn = resolve("app.agents.examiner", "viva_turn", needs_key=True)
+max_turn = resolve("app.agents.examiner", "max_turn", needs_key=True)
+rephrase_turn = resolve("app.agents.examiner", "rephrase", needs_key=True)
 class_heatmap = resolve("app.heatmap", "heatmap")
 synthesize = resolve("app.tts", "synthesize")
 
