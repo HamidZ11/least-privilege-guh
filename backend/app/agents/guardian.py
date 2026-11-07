@@ -43,6 +43,21 @@ INPUT_RULES: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
     (
+        "Tries to override instructions",
+        re.compile(
+            r"(?<![\"“'‘])\b(?:ignore|disregard|forget|override)\s+(?:all|any|your)\s+"
+            r"(?:instructions?|prompts?|rules|directions|guidelines)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "Addresses the marker as an AI",
+        re.compile(
+            r"\bas\s+an\s+ai\b(?=[^.!?\n]*\b(?:you|must|give|mark|award|pass)\b)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
         "Tries to extract the system prompt",
         re.compile(
             r"\b(?:reveal|show|print|repeat|leak)\s+(?:\w+\s+){0,3}?"
@@ -375,6 +390,9 @@ def check_output(text: str, mode: str = "output") -> str:
         text = ""
     mode_label = mode or "output"
     reasons = _output_reasons(text)
+    if mode == "teach_max":
+        # Max is confidently wrong by design, so certainty isn't a fault in his lines.
+        reasons = [reason for reason in reasons if reason != "Unsupported certainty"]
     if reasons or not text.strip():
         label = reasons[0] if reasons else "empty output"
         record_call("Guardian", "output_blocked", f"Output blocked: {label}")
@@ -415,10 +433,11 @@ def record_call(agent: str, action: str, detail: str) -> None:
 
     record_call(agent: str, action: str, detail: str) -> None
 
-    action must be input_scanned, injection_blocked, output_blocked, escalated,
-    or passed. detail is truncated and must not include the submission.
+    Guardian's action must be input_scanned, injection_blocked, output_blocked,
+    escalated, or passed. Other agents can log any action string. detail is
+    truncated and must not include the submission.
     """
-    if action not in _ACTIONS:
+    if agent == "Guardian" and action not in _ACTIONS:
         raise ValueError(f"Unknown guardian action: {action}")
     if agent not in _cards:
         _cards[agent] = {"name": agent, "role": agent, "calls": 0, "last_action": "idle"}

@@ -181,8 +181,15 @@ def main():
         session_shape(value)
         target = concept(value, target_id)
         require(target and target["status"] == "green", "after correction, Correlation vs causation is not green")
-        require(value["mode"] == "viva", "after correction = green, but mode did not return to viva")
-        return "after correction = green; mode returned to viva"
+        # Opened directly, Max moves on to the next weak concept until none are left.
+        if any(c["status"] in ("red", "amber") for c in value["concepts"]):
+            current = concept(value, value["current_concept_id"])
+            require(value["mode"] == "teach_max", "weak concepts remain, but Max stopped")
+            require(current and current["id"] != target_id and current["status"] in ("red", "amber"), "Max did not move to the next weak concept")
+            require(value["max_transcript"][-1]["role"] == "max", "Max did not open on the next concept")
+            return "after correction = green; Max moved to the next weak concept"
+        require(value["mode"] == "viva", "no weak concepts left, but mode did not return to viva")
+        return "after correction = green; no weak concepts left, mode returned to viva"
 
     def turn_path(name):
         return f"{path}/{name}" if path else None
@@ -190,11 +197,14 @@ def main():
     test.step("max opening", "POST", turn_path("max"), max_open, {"text": None})
     test.step("max correction", "POST", turn_path("max"), corrected, {"text": CORRECTION})
 
+    asked = {}
+
     def viva_open(value, _):
         session_shape(value)
         require(value["mode"] == "viva", "viva did not start")
         turn = value["viva_transcript"][-1]
         current = concept(value, value["current_concept_id"])
+        asked["id"] = value["current_concept_id"]
         require(turn["role"] == "examiner" and current and current["quote"] in turn["text"], "opening question does not quote the student's sentence")
         return "viva question quotes the student's own sentence"
 
@@ -202,11 +212,13 @@ def main():
 
     def red_answer(value, _):
         session_shape(value)
-        current = concept(value, value["current_concept_id"])
-        require(current and current["status"] == "red", "confidently wrong viva answer was not red")
+        answered = concept(value, asked.get("id"))
+        require(answered and answered["status"] == "red", "confidently wrong viva answer was not red")
         require(value["mode"] == "teach_max", "red viva answer did not hand over to Max")
-        require(value["max_transcript"][-1]["role"] == "max", "Max handover message missing")
-        return "wrong answer = red; mode switched to teach_max"
+        # The UI offers Max after the viva, so the viva moves on to its next question.
+        require(value["current_concept_id"] != asked["id"], "viva did not move to the next concept")
+        require(value["viva_transcript"][-1]["role"] == "examiner", "viva did not ask its next question")
+        return "wrong answer = red; mode switched to teach_max; viva asked its next question"
 
     latest = test.step("viva wrong answer", "POST", turn_path("viva"), red_answer, {"text": WRONG_ANSWER})
     # Continue through corrections/questions to recap, with a strict bound on calls.

@@ -12,9 +12,34 @@ from typing import Annotated, Any, Literal, TypeVar
 import anthropic
 from pydantic import AfterValidator, BaseModel, ConfigDict, ValidationError
 
+from app.agents.guardian import record_call
 from app.llm import MAX_TOKENS, LLMError, ask_claude
 
 logger = logging.getLogger(__name__)
+
+# What each agent's call logs on the Agents page: (card, action, detail). Details
+# are fixed text so student work and names can't reach the log. Max is a persona
+# of the Examiner, so his calls count on the Examiner card.
+AGENT_LOG = {
+    "reader_concepts": ("Reader", "read_work", "Extracted concepts from a submission"),
+    "reader_rubric": ("Reader", "read_rubric", "Extracted the marking criteria"),
+    "checker": ("Checker", "checked_rubric", "Checked one rubric criterion"),
+    "marker": ("Marker", "scored_answer", "Scored one answer"),
+    "examiner_question": ("Examiner", "asked_question", "Wrote a viva question"),
+    "rephrase": ("Examiner", "rephrased", "Rephrased a message in plain English"),
+    "max_open": ("Examiner", "max_reply", "Max opened on a concept"),
+    "max_pushback": ("Examiner", "max_reply", "Max pushed back"),
+    "max_corrected": ("Examiner", "max_reply", "Max accepted a correction"),
+}
+
+
+def _log_call(name: str) -> None:
+    """Record an agent call. Logging must never break an agent."""
+    try:
+        if name in AGENT_LOG:
+            record_call(*AGENT_LOG[name])
+    except Exception as error:
+        logger.warning("Could not log %s call: %s", name, type(error).__name__)
 
 # Added to every prompt that receives student text.
 UNTRUSTED_DATA_RULE = (
@@ -123,6 +148,7 @@ class Agent:
             max_tokens=self.max_tokens,
             effort=self.effort,
         )
+        _log_call(self.name)
         if self.output_model:
             try:
                 output = self.output_model.model_validate(output).model_dump()

@@ -204,6 +204,7 @@ def _ask(session: dict[str, Any], concept: dict[str, Any], last_answer: str | No
         history=session["viva_transcript"],
     )
     session["current_concept_id"] = concept["id"]
+    session["viva_concept_id"] = concept["id"]  # Max can change current_concept_id
     session["viva_awaiting_answer"] = True
     _say(session, "viva_transcript", "examiner", question, concept["id"])
     return session
@@ -211,6 +212,7 @@ def _ask(session: dict[str, Any], concept: dict[str, Any], last_answer: str | No
 
 def _recap(session: dict[str, Any]) -> dict[str, Any]:
     session["mode"] = "recap"
+    session["viva_over"] = True
     session["viva_awaiting_answer"] = False
     weakest = sorted(session["concepts"], key=lambda c: STATUS_RANK[c["status"]])
     session["revise"] = [
@@ -240,27 +242,33 @@ def _next_question(session: dict[str, Any]) -> dict[str, Any]:
 
 
 def _hand_over_to_max(session: dict[str, Any], concept: dict[str, Any]) -> dict[str, Any]:
-    session["viva_awaiting_answer"] = False
+    """Offer Max on this concept and keep the viva moving. Max's opening is
+    written when he is actually opened, not here, so the student isn't kept
+    waiting for a line they haven't asked to see."""
     session["return_to_viva"] = True
+    session["max_handover_id"] = concept["id"]
     session.setdefault("max_taught", []).append(concept["id"])
-    session["mode"] = "teach_max"
-    return _max_open(session, concept)
+    _next_question(session)
+    if session["mode"] == "viva":
+        session["mode"] = "teach_max"
+    return session
 
 
 def viva_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     """text=None starts or resumes the viva. Returns the updated session."""
-    if session["mode"] in ("recap", "done"):
+    if session.get("viva_over"):
         session["mode"] = "done"
         return session
     session["mode"] = "viva"
 
     awaiting = session.get("viva_awaiting_answer", False)
-    if text is None or not awaiting:
-        return session if awaiting else _next_question(session)
-    if not text.strip():
+    if not awaiting:
+        return _next_question(session)
+    session["current_concept_id"] = session["viva_concept_id"]
+    if text is None or not text.strip():
         return session
 
-    concept = _concept(session, session["current_concept_id"])
+    concept = _concept(session, session["viva_concept_id"])
     transcript = session["viva_transcript"]
     question = transcript[-1]["text"]
     answer, flags = _scan_student_text(text)
@@ -294,6 +302,10 @@ def _max_open(session: dict[str, Any], concept: dict[str, Any]) -> dict[str, Any
     return session
 
 
+def _mode_after_max(session: dict[str, Any]) -> str:
+    return "recap" if session.get("viva_over") else "viva"
+
+
 def _weak_concept(session: dict[str, Any]) -> dict[str, Any] | None:
     weak = [c for c in session["concepts"] if c["status"] in ("red", "amber")]
     return min(weak, key=lambda c: STATUS_RANK[c["status"]], default=None)
@@ -307,10 +319,10 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     if text is None or concept is None:
         if concept is not None:
             return session  # Max is already waiting for a reply
-        weakest = _weak_concept(session)
+        weakest = _concept(session, session.pop("max_handover_id", None)) or _weak_concept(session)
         if weakest is None:
             _say(session, "max_transcript", "max", "I think we've got everything covered!", None)
-            session["mode"] = "viva"
+            session["mode"] = _mode_after_max(session)
             return session
         return _max_open(session, weakest)
     if not text.strip():
@@ -354,7 +366,7 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     if next_concept is not None:
         return _max_open(session, next_concept)
     session["return_to_viva"] = False
-    session["mode"] = "viva"
+    session["mode"] = _mode_after_max(session)
     return session
 
 

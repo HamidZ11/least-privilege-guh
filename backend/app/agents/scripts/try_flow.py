@@ -143,7 +143,9 @@ def one_run() -> list[str]:
     print("Viva:", viva["viva_transcript"][-1]["text"])
     viva_turn(viva, "Because the sample is huge, it proves social media causes anxiety.")
     expect(viva["mode"] == "teach_max", "a red concept in the viva switches to teach_max")
-    expect(bool(viva["max_transcript"]), "Max opens straight after the switch")
+    expect(viva["viva_transcript"][-1]["role"] == "examiner", "the viva asks its next question")
+    max_turn(viva, None)
+    expect(bool(viva["max_transcript"]), "Max opens on the red concept")
     max_turn(viva, CORRECT_REPLY)
     expect(
         by_name(viva, concept["name"])["status"] == "green" and viva["mode"] == "viva",

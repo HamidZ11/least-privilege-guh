@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Ban, Bot, RotateCcw, ShieldAlert, ShieldCheck, ArrowUpRight, ScanSearch, UserCheck } from "lucide-react";
+import { Activity, Ban, Bot, RotateCcw, ShieldAlert, ShieldCheck, ArrowUpRight, ScanSearch, UserCheck } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Card, GhostButton, PageTitle, Skeleton } from "@/components/ui";
 import { errorText, getAgents } from "@/lib/viva";
@@ -87,13 +87,13 @@ export default function Agents() {
         {data.log.length === 0 ? <p className="text-ink2">Nothing logged yet. Submit some work and it will appear here.</p> : (
           <ol className="space-y-3">
             {[...data.log].reverse().map((e, i) => {
-              const Icon = ICON[e.action] ?? ShieldCheck;
+              const Icon = ICON[e.action as keyof typeof ICON] ?? Activity;
               const bad = e.action === "injection_blocked" || e.action === "output_blocked";
               return (
                 <li key={`${e.ts}-${i}`} className="flex items-start gap-3">
                   <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${bad ? "bg-[#d9483b1f] text-red" : "bg-[#eef1f7] text-ink2"}`}><Icon size={13} /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 text-sm"><span className={`rounded px-2 py-0.5 text-xs font-semibold ${PILL[e.action] ?? PILL.passed}`}>{LABEL[e.action] ?? e.action}</span><span className="text-ink2">{e.agent}</span></p>
+                    <p className="flex flex-wrap items-center gap-2 text-sm"><span className={`rounded px-2 py-0.5 text-xs font-semibold ${PILL[e.action] ?? PILL.passed}`}>{LABEL[e.action as keyof typeof LABEL] ?? e.action.replaceAll("_", " ")}</span><span className="text-ink2">{e.agent}</span></p>
                     <p className="mt-0.5 break-words text-ink2">{e.detail}</p>
                   </div>
                   <span className="tnum shrink-0 text-xs text-ink3">{e.ts}</span>

@@ -15,17 +15,12 @@ _GENERIC_GAP = "The brief does not state a policy that answers this question."
 # Exact substrings of BRIEF. If a line is not in that text, we escalate
 # rather than invent a citation.
 QUOTES = {
-    "source_count": "You must use five academic sources.",
-    "word_limit": (
-        "Write a 1500-word critical evaluation of social media use and adolescent anxiety."
-    ),
-    "learning_outcomes": (
-        "Evaluate claims about social media use and adolescent anxiety, judge whether "
-        "a study design supports those claims, and use academic sources in a critical argument."
-    ),
-    "deadline": "Submit by 18 December 2026 at 14:00 UK time.",
-    "module": "CMP2045 Research Methods in Psychology, University of Manchester.",
-    "weighting": "This assignment is worth 40% of the module mark.",
+    "source_count": 'You must use at least five academic sources.',
+    "word_limit": 'Write a 1500-word critical evaluation of a published study investigating the relationship between social media use and anxiety in adolescents.',
+    "learning_outcomes": 'Learning outcomes: LO1 evaluate research designs · LO2 assess sampling and measurement · LO3 judge the validity of conclusions.',
+    "deadline": "Submit via Moodle by 23:59 on Friday 20 November 2026. Late submissions follow the University's standard policy.",
+    "module": 'University of Manchester — CMP2045 Research Methods in Psychology',
+    "weighting": 'Assignment 1 (40% of module mark)',
 }
 
 ANSWER_CONFIDENCE = 0.93
@@ -79,25 +74,13 @@ _WEIGHT = re.compile(
 _clusters: dict[str, dict] = {}
 
 
-BRIEF = """University of Manchester
-CMP2045 Research Methods in Psychology, University of Manchester.
-
-Assignment brief
-
-Task
-Write a 1500-word critical evaluation of social media use and adolescent anxiety.
-
-Sources
-You must use five academic sources.
-
-Learning outcomes
-Evaluate claims about social media use and adolescent anxiety, judge whether a study design supports those claims, and use academic sources in a critical argument.
-
-Deadline
-Submit by 18 December 2026 at 14:00 UK time.
-
-Assessment weighting
-This assignment is worth 40% of the module mark.
+BRIEF = """University of Manchester — CMP2045 Research Methods in Psychology
+Assignment 1 (40% of module mark)
+Write a 1500-word critical evaluation of a published study investigating the relationship between social media use and anxiety in adolescents.
+You must use at least five academic sources.
+Your evaluation should address the study's design, sampling, and the validity of its conclusions.
+Submit via Moodle by 23:59 on Friday 20 November 2026. Late submissions follow the University's standard policy.
+Learning outcomes: LO1 evaluate research designs · LO2 assess sampling and measurement · LO3 judge the validity of conclusions.
 """
 
 

@@ -3,6 +3,7 @@
 The contradiction and low-confidence rules come from Ebube's draft.
 """
 
+import re
 from typing import Any
 
 from pydantic import BaseModel
@@ -10,7 +11,6 @@ from pydantic import BaseModel
 from app.agents.base import (
     AGENT_RULES,
     Agent,
-    AgentOutputError,
     NonBlank,
     Shape,
     Status,
@@ -48,6 +48,7 @@ confidence: from 0 to 1, how sure you are of the status.
 {UNTRUSTED_DATA_RULE}"""
 
 LOW_CONFIDENCE = 0.5
+TRAILING_JUNK = re.compile(r"(?:<[^>]*>?|[\s\"”’'}\]])+$")
 NO_ANSWER = {
     "status": "red",
     "confidence": 1.0,
@@ -70,6 +71,11 @@ class MarkerAgent(Agent):
     system_prompt = SYSTEM_PROMPT
     output_model = Mark
     model = settings.judge_model
+
+
+def _trim_quote(quote: str | None) -> str:
+    """Remove stray closing characters the model sometimes adds, such as .” or .</ans"""
+    return TRAILING_JUNK.sub("", quote or "")
 
 
 def _flag(mark: dict[str, Any], confidence: float, answer: str) -> dict[str, Any] | None:
@@ -115,23 +121,18 @@ def score(
     if not answer.strip():
         return dict(NO_ANSWER)
 
-    normalised_work = normalise(work_text)
-    normalised_answer = normalise(answer)
-
-    def check(mark: dict) -> None:
-        if not mark["contradicts_submission"]:
-            return
-        submission_quote = normalise(mark["submission_quote"] or "")
-        answer_quote = normalise(mark["answer_quote"] or "")
-        if not submission_quote or submission_quote not in normalised_work:
-            raise AgentOutputError("marker's submission_quote isn't in the work")
-        if not answer_quote or answer_quote not in normalised_answer:
-            raise AgentOutputError("marker's answer_quote isn't in the answer")
-
     payload = to_payload(
         concept=concept, question_or_context=question, answer=answer, work=work_text
     )
-    mark = MarkerAgent().run_checked(payload, check)
+    mark = MarkerAgent().run_checked(payload)
+    mark["submission_quote"] = _trim_quote(mark["submission_quote"])
+    mark["answer_quote"] = _trim_quote(mark["answer_quote"])
+    # A submission quote that isn't in the work isn't evidence, so no flag. The mark
+    # still stands. The answer is already known, so its own words can stand in.
+    if normalise(mark["submission_quote"]) not in normalise(work_text) or not mark["submission_quote"]:
+        mark["contradicts_submission"] = False
+    if normalise(mark["answer_quote"]) not in normalise(answer) or not mark["answer_quote"]:
+        mark["answer_quote"] = answer[:200]
     confidence = clamp_confidence(mark["confidence"])
     return {
         "status": mark["status"],
