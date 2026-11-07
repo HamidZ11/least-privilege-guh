@@ -20,22 +20,26 @@ def _load_mock() -> dict[str, Any]:
     try:
         return json.loads(MOCK_PATH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {"concepts": [], "students": []}  # never crash the Class Insights page
+        return {"students": []}  # never crash the Class Insights page
 
 
 def heatmap() -> list[dict[str, Any]]:
     mock = _load_mock()
+    # Concept rows come from the roster, in first-seen order. A top-level
+    # "concepts" list is optional and only sets the order.
     counts: dict[str, dict[str, int]] = {
-        name: dict.fromkeys(STATUSES, 0) for name in mock["concepts"]
+        name: dict.fromkeys(STATUSES, 0) for name in mock.get("concepts", [])
     }
 
     sessions = [x for x in list_sessions() if "student" in x]
     session_names = {x["student"].strip().lower() for x in sessions}
 
-    for student in mock["students"]:
-        if student["student"].strip().lower() in session_names:
+    for student in mock.get("students", []):
+        # Nouman's roster uses "name", the first version used "student".
+        name = (student.get("name") or student.get("student") or "").strip().lower()
+        if name in session_names:
             continue
-        for concept, status in student["concepts"].items():
+        for concept, status in student.get("concepts", {}).items():
             if status in STATUSES:
                 counts.setdefault(concept, dict.fromkeys(STATUSES, 0))[status] += 1
 
