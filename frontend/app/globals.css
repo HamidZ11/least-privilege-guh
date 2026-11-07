@@ -103,3 +103,13 @@ button:not(:disabled), a { touch-action: manipulation; }
 @media (max-width: 900px) { .viva-sidebar { width: 208px; } .viva-main { padding: 20px; } }
 @media (max-width: 640px) { .viva-frame { height: calc(100dvh - 16px); margin: 8px; } .viva-sidebar { width: 156px; } .viva-main { padding: 16px; } .viva-nav-label { font-size: 12px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }
+
+/* New chat messages: 220ms fade with a 4px rise. Nothing else in the chat animates. */
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.msg-in { animation: msg-in 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .msg-in { animation: none; }
+}

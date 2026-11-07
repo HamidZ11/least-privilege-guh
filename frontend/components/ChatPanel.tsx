@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { RefreshCw, RotateCcw, Square, Volume2, VolumeX, Wand2 } from "lucide-react";
 import Composer from "./Composer";
 import MasteryRail from "./MasteryRail";
-import { Card, GhostButton, Skeleton } from "./ui";
+import { GhostButton, Skeleton } from "./ui";
 import { chat, errorText, rephrase, speak, stopSpeaking } from "@/lib/viva";
 import type { Session, Turn } from "@/lib/types";
 
@@ -39,6 +39,8 @@ export default function ChatPanel({
   const [phase, setPhase] = useState<Phase>("idle");
   const [begun, setBegun] = useState(false);
   const [muted, setMuted] = useState(false);
+  // Measured time to each reply, keyed by "<kind>-<index>" in that transcript.
+  const [timings, setTimings] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const retryRef = useRef<(() => void) | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -82,12 +84,18 @@ export default function ChatPanel({
       onSession({ ...cur, [key]: [...t, { role: "student", text: value, concept_id: cur.current_concept_id }] });
     }
     try {
+      const started = performance.now();
       const next = (await chat(curKind, cur, value)).data;
       onSession(next);
       retryRef.current = null;
       // Whoever the backend says is speaking now (it may have switched mode).
       const nextKind: Kind = kind === "viva" && next.mode === "teach_max" && next.viva_transcript.length > 0 ? "max" : kind;
-      const last = (nextKind === "max" ? next.max_transcript : next.viva_transcript).at(-1);
+      const replies = nextKind === "max" ? next.max_transcript : next.viva_transcript;
+      const last = replies.at(-1);
+      if (last && last.role !== "student") {
+        const key = `${nextKind}-${replies.length - 1}`;
+        setTimings((t) => ({ ...t, [key]: (performance.now() - started) / 1000 }));
+      }
       if (!mutedRef.current && last && last.role !== "student") {
         setPhase("speaking");
         await speak(last.text, nextKind === "max" ? "max" : "examiner");
@@ -119,53 +127,63 @@ export default function ChatPanel({
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [transcript.length, phase]);
 
+  const title = isMax ? "Teach Max" : "Viva";
+  const secondary = isMax ? "Teach Max" : "Viva question";
+  const timeFor = (i: number) => {
+    const secs = timings[`${eff}-${i}`];
+    return secs ? `for ${Math.max(1, Math.round(secs))}s` : null;
+  };
+
   return (
     <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
-      <Card className="flex h-[calc(100dvh-216px)] min-h-[520px] min-w-0 flex-col overflow-hidden">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
-          <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white transition-colors ${isMax ? "bg-[#0f766e]" : "bg-btn"}`}>{isMax ? "M" : "E"}</span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">{isMax ? "Max, a fellow student" : "Viva examiner"}</p>
-            <p className="truncate text-xs text-ink2">{subtitle ?? (isMax ? "Max thinks he understands this. Correct him." : "A short conversation about your own work")}</p>
-          </div>
-          {kind === "viva" && <span className="tnum rounded border border-line px-2 py-1 text-sm" aria-label="Viva timer">{timer}</span>}
-          <button
-            type="button"
-            onClick={toggleMuted}
-            aria-pressed={muted}
-            aria-label={muted ? "Unmute voice" : "Mute voice"}
-            title={muted ? "Voice off" : "Voice on"}
-            className={`flex h-8 w-8 items-center justify-center rounded-full border border-line transition-colors ${muted ? "text-ink3" : "text-ink hover:bg-[#f6f6f4]"}`}
-          >
-            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
+      <section className="flex h-[calc(100dvh-216px)] min-h-[520px] min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.14)]">
+        <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+          <span className="shrink-0 rounded-full bg-[#f2f2f2] px-3 py-1 text-sm font-medium text-ink">{title}</span>
+          <span className="min-w-0 truncate text-xs text-ink2">{subtitle ?? (isMax ? "Max thinks he understands this. Correct him." : "A short conversation about your own work")}</span>
+          <span className="ml-auto flex shrink-0 items-center gap-1">
+            {kind === "viva" && <span className="tnum px-2 text-xs text-ink2" aria-label="Viva timer">{timer}</span>}
+            <button
+              type="button"
+              onClick={toggleMuted}
+              aria-pressed={muted}
+              aria-label={muted ? "Unmute voice" : "Mute voice"}
+              title={muted ? "Voice off" : "Voice on"}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-ink2 hover:bg-[#f2f2f2]"
+            >
+              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+          </span>
         </div>
 
         {kind === "viva" && isMax && (
-          <div className="fadein flex items-center gap-2 border-b border-line bg-[#e6f4f2] px-5 py-2 text-sm text-[#0b5a54]" role="status">
-            <Wand2 size={14} /> Switching to Teach Max: let&apos;s fix this one first
+          <div className="flex items-center gap-2 border-b border-line bg-[#f3f9f7] px-4 py-1.5 text-xs text-[#0b5a54]" role="status">
+            <Wand2 size={13} /> Switching to Teach Max: let&apos;s fix this one first
           </div>
         )}
         {finished && (
-          <div className="border-b border-line bg-[#fafafa] px-5 py-3 text-sm">
+          <div className="border-b border-line bg-[#fafafa] px-4 py-3 text-sm">
             <p className="mb-1 font-medium">Viva complete. Your module leader will review it.</p>
             {session.revise.length > 0 && <><p className="text-ink2">Three things worth revising:</p>
             <ol className="list-decimal pl-5 text-ink2">{session.revise.map((r) => <li key={r}>{r}</li>)}</ol></>}
           </div>
         )}
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6" aria-live="polite">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5" aria-live="polite">
           {transcript.length === 0 && phase === "thinking" && <div className="space-y-2"><Skeleton className="h-12 w-3/4" /><Skeleton className="h-12 w-1/2" /></div>}
           {transcript.map((t, i) => {
             const mine = t.role === "student";
-            return (
-              <div key={i} className={`fadein flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className="min-w-0 max-w-[88%]">
-                  <p className="mb-2 flex items-center gap-2 text-xs text-ink2">{!mine && <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white ${isMax ? "bg-[#0f766e]" : "bg-ink"}`}>{isMax ? "M" : "E"}</span>}<span className="font-medium">{mine ? "You" : label}</span></p>
-                  <div className={`rounded-xl px-4 py-3 ${mine ? "bg-[#f0f0f0] text-ink" : isMax ? "border border-[#d8eae6] bg-[#f3f9f7]" : "border border-line bg-[#fafafa]"}`}>
-                    <p className="whitespace-pre-wrap break-words leading-relaxed">{t.text}</p>
-                  </div>
-                </div>
+            return mine ? (
+              <div key={i} className="msg-in flex justify-end">
+                <p className="max-w-[80%] whitespace-pre-wrap break-words rounded-[18px] bg-[#f2f2f2] px-4 py-2.5 leading-relaxed text-ink">{t.text}</p>
+              </div>
+            ) : (
+              <div key={i} className="msg-in min-w-0">
+                <p className="mb-1 flex flex-wrap items-baseline gap-x-2 text-sm">
+                  <span className="font-medium text-ink">{label}</span>
+                  <span className="text-ink2">{secondary}</span>
+                  {timeFor(i) && <span className="text-ink3">{timeFor(i)}</span>}
+                </p>
+                <p className="whitespace-pre-wrap break-words leading-relaxed text-ink">{t.text}</p>
               </div>
             );
           })}
@@ -173,18 +191,18 @@ export default function ChatPanel({
         </div>
 
         {error && (
-          <div className="mx-5 mb-2 flex items-center gap-3 rounded border border-[#f5c2bd] bg-[#fff5f4] px-3 py-2 text-sm" role="alert">
+          <div className="mx-3 mb-2 flex items-center gap-3 rounded-lg border border-[#f5c2bd] bg-[#fff5f4] px-3 py-2 text-sm" role="alert">
             <span className="flex-1 text-[#b42318]">{error}</span>
             {retryRef.current && <GhostButton type="button" onClick={() => retryRef.current?.()}><RotateCcw size={14} /> Retry</GhostButton>}
           </div>
         )}
 
         {(phase === "speaking" || !isMax) && !finished && (
-          <div className="flex items-center gap-2 px-5 text-xs text-ink2">
+          <div className="flex items-center gap-2 px-4 text-xs text-ink2">
             {phase === "speaking" && (
               <>
-                <Volume2 size={14} /> <span role="status">{label} is speaking…</span>
-                <button type="button" onClick={() => { stopSpeaking(); setPhase("idle"); }} className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-[#f2f4f8]"><Square size={10} /> Skip</button>
+                <Volume2 size={13} /> <span role="status">{label} is speaking…</span>
+                <button type="button" onClick={() => { stopSpeaking(); setPhase("idle"); }} className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-[#f2f2f2]"><Square size={10} /> Skip</button>
               </>
             )}
             {!isMax && (
@@ -204,7 +222,7 @@ export default function ChatPanel({
           onSend={(v) => { setBegun(true); send(v); }}
           onListeningChange={(l) => { if (l) { stopSpeaking(); setPhase((p) => (p === "speaking" ? "idle" : p)); } }}
         />
-      </Card>
+      </section>
 
       <div className="min-w-0 space-y-4">
         <MasteryRail concepts={session.concepts} activeId={focusConceptId ?? session.current_concept_id} title={railTitle} />

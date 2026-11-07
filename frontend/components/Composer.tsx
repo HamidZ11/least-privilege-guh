@@ -123,51 +123,47 @@ export default function Composer({
   };
 
   return (
-    <div className="border-t border-line p-3">
-      <div
-        className={`rounded-2xl border bg-white transition-shadow focus-within:shadow-sm ${listening ? "border-[#e5372a]" : "border-[#d6d6d2] focus-within:border-ink3"}`}
-      >
-        <textarea
-          ref={areaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={onKeyDown}
-          rows={1}
-          disabled={disabled}
-          placeholder={interim ? "" : placeholder}
-          aria-label="Your answer"
-          className="block w-full resize-none bg-transparent px-4 pb-1 pt-3 text-[15px] leading-6 outline-none placeholder:text-ink3 disabled:text-ink3"
-        />
-        {interim && (
-          <p className="px-4 pb-1 text-[15px] leading-6 text-ink3" aria-live="polite">{interim}</p>
+    <div className="m-3 mt-2 rounded-[14px] bg-[#f2f2f2] px-3 pb-2 pt-1">
+      <textarea
+        ref={areaRef}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={onKeyDown}
+        rows={1}
+        disabled={disabled}
+        placeholder={interim ? "" : placeholder}
+        aria-label="Your answer"
+        className="block w-full resize-none bg-transparent px-1 pb-1 pt-2 text-[15px] leading-6 text-ink outline-none placeholder:text-ink3 disabled:text-ink3"
+      />
+      {interim && (
+        <p className="px-1 pb-1 text-[15px] leading-6 text-ink3" aria-live="polite">{interim}</p>
+      )}
+      <div className="flex items-center justify-end gap-1">
+        {listening && <span className="mr-auto pl-1 text-xs text-[#b42318]" role="status">Listening… tap to stop</span>}
+        {dictationOk === false && (
+          <span className="mr-auto pl-1 text-xs text-ink3" title="Dictation works in Chrome">Dictation works in Chrome</span>
         )}
-        <div className="flex items-center justify-end gap-2 px-2 pb-2">
-          {listening && <span className="mr-auto pl-2 text-xs text-[#b42318]" role="status">Listening… tap to stop</span>}
-          {dictationOk === false && (
-            <span className="mr-auto pl-2 text-xs text-ink3" title="Dictation works in Chrome">Dictation works in Chrome</span>
-          )}
-          {dictationOk && (
-            <button
-              type="button"
-              onClick={listening ? stopListening : startListening}
-              disabled={disabled}
-              aria-label={listening ? "Stop dictating" : "Dictate your answer"}
-              aria-pressed={listening}
-              className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${listening ? "bg-[#e5372a] text-white ring-4 ring-[#e5372a]/25" : "text-ink2 hover:bg-[#f2f4f8]"}`}
-            >
-              {listening ? <Square size={14} /> : <Mic size={18} />}
-            </button>
-          )}
+        {dictationOk && (
           <button
             type="button"
-            onClick={send}
-            disabled={!canSend}
-            aria-label="Send"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1f1f1f] text-white transition-colors hover:bg-[#333] disabled:bg-[#e3e3e0] disabled:text-[#9a9a9a]"
+            onClick={listening ? stopListening : startListening}
+            disabled={disabled}
+            aria-label={listening ? "Stop dictating" : "Dictate your answer"}
+            aria-pressed={listening}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg disabled:opacity-40 ${listening ? "bg-[#e5372a] text-white ring-4 ring-[#e5372a]/25" : "text-ink2 hover:bg-[#e5e5e5]"}`}
           >
-            {sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={18} />}
+            {listening ? <Square size={14} /> : <Mic size={18} />}
           </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={send}
+          disabled={!canSend}
+          aria-label="Send"
+          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-[120ms] ${canSend ? "bg-[#1f1f1f] text-white" : "bg-[#e5e5e5] text-ink"}`}
+        >
+          {sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={18} />}
+        </button>
       </div>
     </div>
   );
