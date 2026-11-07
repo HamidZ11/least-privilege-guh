@@ -20,7 +20,16 @@ export default function Teach() {
   const [creating, setCreating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inflight = useRef<string | null>(null);
+  const defaulted = useRef(false);
   const concept = params.get("concept");
+
+  // Open on the submitted essay by default: it is the session the backend already holds.
+  useEffect(() => {
+    if (ready && !defaulted.current) {
+      defaulted.current = true;
+      if (finalA && !params.get("lab")) setUseFinal(true);
+    }
+  }, [ready, finalA, params]);
 
   const lab = labs.find((l) => l.id === labId) ?? [...labs].sort((a, b) => b.week - a.week)[0];
   const labSession = lab ? labSessions[lab.id] : undefined;
@@ -41,9 +50,10 @@ export default function Teach() {
     setCreating(null);
   };
   useEffect(() => {
-    if (ready && !useFinal && lab && !labSession && !error) create(lab);
+    // No lab picked yet and an essay exists: the essay is the default, so do not create a lab session.
+    if (ready && !useFinal && lab && !labSession && !error && !(finalA && !labId)) create(lab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, useFinal, lab?.id, !!labSession]);
+  }, [ready, useFinal, lab?.id, !!labSession, labId, !!finalA]);
 
   if (!ready) return <Skeleton className="h-64 w-full" />;
   if (labs.length === 0 && !finalA)
