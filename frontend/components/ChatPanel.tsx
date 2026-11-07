@@ -161,7 +161,7 @@ export default function ChatPanel({
             return (
               <div key={i} className={`fadein flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div className="min-w-0 max-w-[88%]">
-                  <p className="mb-2 flex items-center gap-2 text-xs text-ink2">{!mine && <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white ${isMax ? "bg-[#0f766e]" : "bg-ink"}`}>{isMax ? "M" : "E"}</span>}<span className="font-medium">{mine ? "You" : label}</span>{!mine && mode === "voice" && <span>· captions</span>}</p>
+                  <p className="mb-2 flex items-center gap-2 text-xs text-ink2">{!mine && <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white ${isMax ? "bg-[#0f766e]" : "bg-ink"}`}>{isMax ? "M" : "E"}</span>}<span className="font-medium">{mine ? "You" : label}</span></p>
                   <div className={`rounded-xl px-4 py-3 ${mine ? "bg-[#f0f0f0] text-ink" : isMax ? "border border-[#d8eae6] bg-[#f3f9f7]" : "border border-line bg-[#fafafa]"}`}>
                     <p className="whitespace-pre-wrap break-words leading-relaxed">{t.text}</p>
                   </div>
