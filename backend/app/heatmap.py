@@ -1,7 +1,9 @@
 """Class heatmap: concepts x red/amber/green counts.
 
 Combines the demo cohort in data/mock_students.json (labelled demo data in the UI)
-with real sessions from app/sessions.py. Sessions are read-only here.
+with sessions from app/sessions.py, which include seeded demo sessions. Sessions are
+read-only here. Nobody is counted twice: a session wins over a mock student with the
+same name, and each session counts once.
 """
 
 import json
@@ -18,21 +20,34 @@ def _load_mock() -> dict[str, Any]:
     try:
         return json.loads(MOCK_PATH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {"concepts": [], "students": []}  # never crash the Class Insights page
+        return {"students": []}  # never crash the Class Insights page
 
 
 def heatmap() -> list[dict[str, Any]]:
     mock = _load_mock()
+    # Concept rows come from the roster, in first-seen order. A top-level
+    # "concepts" list is optional and only sets the order.
     counts: dict[str, dict[str, int]] = {
-        name: dict.fromkeys(STATUSES, 0) for name in mock["concepts"]
+        name: dict.fromkeys(STATUSES, 0) for name in mock.get("concepts", [])
     }
 
-    for student in mock["students"]:
-        for concept, status in student["concepts"].items():
+    sessions = [x for x in list_sessions() if "student" in x]
+    session_names = {x["student"].strip().lower() for x in sessions}
+
+    for student in mock.get("students", []):
+        # Nouman's roster uses "name", the first version used "student".
+        name = (student.get("name") or student.get("student") or "").strip().lower()
+        if name in session_names:
+            continue
+        for concept, status in student.get("concepts", {}).items():
             if status in STATUSES:
                 counts.setdefault(concept, dict.fromkeys(STATUSES, 0))[status] += 1
 
-    for session in list_sessions():
+    seen: set[str] = set()
+    for session in sessions:
+        if session["id"] in seen:
+            continue
+        seen.add(session["id"])
         for concept in session.get("concepts") or []:
             status = concept.get("status")
             if status in STATUSES:  # "untested" isn't counted yet
