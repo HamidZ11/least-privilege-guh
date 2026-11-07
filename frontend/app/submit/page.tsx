@@ -12,7 +12,7 @@ import { errorText, submitWork } from "@/lib/viva";
 import type { Session } from "@/lib/types";
 
 const STATUS: Record<AssessStatus, { label: string; cls: string }> = {
-  not_started: { label: "Not submitted", cls: "bg-[#eef1f7] text-ink2" },
+  not_started: { label: "Not submitted", cls: "bg-[#f5f5f5] text-ink2" },
   viva_due: { label: "Viva to do", cls: "bg-[#fde8e6] text-[#b42318]" },
   awaiting_review: { label: "With your module leader", cls: "bg-[#fff6e0] text-[#8f5d0a]" },
   reviewed: { label: "Reviewed", cls: "bg-[#e6f4ec] text-[#1e7a43]" },
@@ -99,7 +99,7 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
 
   if (busy)
     return (
-      <div className="border-t border-line bg-[#f9fafc] p-5" role="status" aria-live="polite">
+      <div className="border-t border-line bg-[#fafafa] p-5" role="status" aria-live="polite">
         <p className="mb-3 text-sm font-semibold">Your work is being checked</p>
         <ol className="space-y-2.5">
           {steps.map((label, i) => {
@@ -107,8 +107,8 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
             const active = step === i;
             return (
               <li key={label} className={`flex items-center gap-3 text-sm ${done || active ? "text-ink" : "text-ink3"}`}>
-                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${done ? "bg-green text-white" : active ? "border border-[#14284b]" : "border border-line"}`}>
-                  {done ? <Check size={12} /> : active ? <Loader2 size={12} className="animate-spin text-[#14284b]" /> : null}
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${done ? "bg-green text-white" : active ? "border border-[#111111]" : "border border-line"}`}>
+                  {done ? <Check size={12} /> : active ? <Loader2 size={12} className="animate-spin text-[#111111]" /> : null}
                 </span>
                 <span>{label.replace("…", done ? "" : "…")}</span>
               </li>
@@ -116,8 +116,8 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
           })}
         </ol>
         {caught && (
-          <div className="fadein mt-4 flex items-start gap-2 rounded border border-line bg-[#fff6e0] px-3 py-2.5 text-sm">
-            <ShieldAlert size={16} className="mt-0.5 shrink-0 text-amber-ink" />
+          <div className="fadein mt-4 flex items-start gap-2 rounded border border-line bg-[#fff5f4] px-3 py-2.5 text-sm text-[#b42318]">
+            <ShieldAlert size={16} className="mt-0.5 shrink-0 text-red" />
             Guardian found a hidden instruction in the document, removed it and logged it. Everything else carries on as normal.
           </div>
         )}
@@ -125,7 +125,7 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
     );
 
   return (
-    <div className="border-t border-line bg-[#f9fafc] p-5">
+    <div className="border-t border-line bg-[#fafafa] p-5">
       <div className="mb-2 flex items-center justify-between">
         <label className="text-sm font-medium" htmlFor={`w-${a.id}`}>Your work</label>
         <button type="button" onClick={() => input.current?.click()} className="text-xs text-ink2 underline-offset-2 hover:underline">Upload .txt / code file</button>
@@ -141,18 +141,19 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
         onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
         onDrop={onDrop}
-        className={`relative rounded outline-none focus-visible:ring-2 focus-visible:ring-[#14284b] ${dragging ? "border-2 border-dashed border-[#14284b] bg-[#eef1f7]" : "border-2 border-transparent"}`}
+        className={`relative rounded-xl border-2 border-dashed p-4 outline-none focus-visible:ring-2 focus-visible:ring-ink ${dragging ? "border-ink bg-[#f0f0f0]" : "border-[#dedede] bg-white"}`}
       >
+        <button type="button" onClick={() => input.current?.click()} className="mb-4 flex w-full flex-col items-center gap-2 py-4 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-[#fafafa]"><Upload size={18} className="text-ink2" /></span><span className="text-sm font-medium">Drag your file here or click to browse</span><span className="text-xs text-ink2">Or paste your work below</span></button>
         <textarea
           id={`w-${a.id}`}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          rows={8}
-          placeholder="Paste your work here, or drag a file onto this box…"
+          rows={5}
+          placeholder="Paste your coursework…"
           className="w-full resize-none rounded border border-line bg-white px-3 py-2 outline-none focus:border-ink3"
         />
         {dragging && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded bg-[#eef1f7]/90 text-sm font-semibold text-[#14284b]">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded bg-[#f5f5f5]/90 text-sm font-semibold text-[#111111]">
             <Upload size={16} className="mr-2" /> Drop your file to upload
           </div>
         )}
@@ -163,7 +164,7 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
           <FileText size={14} className="shrink-0 text-ink2" />
           <span className="truncate font-medium">{file.name}</span>
           <span className="shrink-0 text-xs text-ink3">{size(file.size)}</span>
-          <button type="button" onClick={clearFile} aria-label={`Remove ${file.name}`} className="shrink-0 rounded p-0.5 text-ink2 hover:bg-[#f2f4f8]"><X size={14} /></button>
+          <button type="button" onClick={clearFile} aria-label={`Remove ${file.name}`} className="shrink-0 rounded p-0.5 text-ink2 hover:bg-[#f5f5f5]"><X size={14} /></button>
         </div>
       )}
       {file && fileText === null && <p className="mt-1 text-xs text-ink2">We&apos;ll read this file when you submit.</p>}
@@ -231,7 +232,7 @@ export default function Submit() {
                   </Link>
                 )}
                 {a.status === "awaiting_review" && <span className="flex items-center gap-1.5 text-sm text-ink2"><CheckCircle2 size={14} className="text-green" /> Viva done, waiting for a person to review</span>}
-                {a.status === "reviewed" && <Link href="/rubric?tab=assess" className="text-sm font-medium text-[#14284b] underline-offset-2 hover:underline">See feedback</Link>}
+                {a.status === "reviewed" && <Link href="/rubric?tab=assess" className="text-sm font-medium text-[#111111] underline-offset-2 hover:underline">See feedback</Link>}
               </div>
               {open === a.id && a.status === "not_started" && <Uploader a={a} onDone={() => setOpen(null)} />}
             </Card>

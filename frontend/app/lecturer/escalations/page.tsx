@@ -31,14 +31,14 @@ export default function Escalations() {
       {sendErr && <p className="mb-3 text-sm text-[#b42318]" role="alert">{sendErr}</p>}
       {!loaded && !queueError && <Skeleton className="h-40 w-full" />}
       {loaded && !queueError && sorted.length === 0 && <Empty icon={<Inbox size={18} />} title="Nothing to answer" body="When students ask something the brief doesn't cover, it appears here." />}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {sorted.map((c) => (
-          <Card key={c.id} className="fadein p-5">
+          <Card key={c.id} className="fadein overflow-hidden p-5">
             <div className="mb-3 flex items-start gap-3">
-              <h3 className="flex-1 text-base font-semibold">{c.summary}</h3>
-              <span className="tnum flex items-center gap-1.5 rounded-full bg-[#efefec] px-2.5 py-1 text-xs font-medium"><Users size={12} /> {c.students.length} students</span>
+              <h3 className="flex min-w-0 flex-1 items-start gap-2 text-sm font-medium"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red" />{c.summary}</h3>
+              <span className="tnum flex shrink-0 items-center gap-1.5 rounded-full bg-[#f5f5f5] px-2.5 py-1 text-xs font-medium"><Users size={12} /> {c.students.length} students</span>
             </div>
-            <ul className="mb-4 space-y-1 border-l-2 border-line pl-3 text-ink2">
+            <ul className="mb-4 space-y-1 border-l border-line pl-4 text-[13px] text-ink2">
               {c.questions.slice(0, 4).map((q, i) => <li key={`${q}-${i}`}>“{q}”</li>)}
               {c.questions.length > 4 && <li className="text-xs text-ink3">+ {c.questions.length - 4} more</li>}
             </ul>
@@ -59,7 +59,7 @@ export default function Escalations() {
                 />
                 <div className="mt-2 flex justify-end">
                   <PrimaryButton disabled={busy === c.id} onClick={() => send(c.id, c.suggested_clarification ?? "")}>
-                    <Megaphone size={14} /> {busy === c.id ? "Sending…" : "Answer once → broadcast to all"}
+                    <Megaphone size={14} /> {busy === c.id ? "Sending…" : "Answer once for everyone"}
                   </PrimaryButton>
                 </div>
               </>

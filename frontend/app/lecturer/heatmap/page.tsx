@@ -84,7 +84,7 @@ export default function Heatmap() {
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><MessageSquareQuote size={16} /> From the class so far</div>
           {struggling.length === 0 ? <p className="text-ink2">Nothing stands out. The class is secure on every concept.</p> : (
             <ul className="space-y-3">
-              {struggling.map((r) => <li key={r.concept} className="border-l-2 border-[#14284b] pl-3"><p className="text-sm font-medium">Your class struggles with {r.concept.toLowerCase()}.</p><p className="text-sm text-ink2">{r.red + r.amber} of {total(r)} students are not yet secure ({pct(r.red, total(r))}% red).</p></li>)}
+              {struggling.map((r) => <li key={r.concept} className="border-l-2 border-[#111111] pl-3"><p className="text-sm font-medium">Your class struggles with {r.concept.toLowerCase()}.</p><p className="text-sm text-ink2">{r.red + r.amber} of {total(r)} students are not yet secure ({pct(r.red, total(r))}% red).</p></li>)}
             </ul>
           )}
         </Card>

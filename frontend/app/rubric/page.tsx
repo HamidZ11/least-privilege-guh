@@ -25,7 +25,7 @@ function Criterion({ r, practise, practiseHref }: { r: RubricCriterion; practise
           <p className="leading-relaxed">{r.gap_note}</p>
           {r.quote && <p className="border-l-2 border-line pl-3 text-xs italic text-ink2">You wrote: “{r.quote}”</p>}
           {practise && r.status !== "green" && (
-            <Link href={practiseHref ?? "/teach"} className="no-print inline-flex items-center gap-1 text-sm font-medium text-[#14284b]">Practise with Max <ArrowRight size={14} /></Link>
+            <Link href={practiseHref ?? "/teach"} className="no-print inline-flex items-center gap-1 text-sm font-medium text-[#111111]">Practise with Max <ArrowRight size={14} /></Link>
           )}
         </div>
       </div>
@@ -62,7 +62,7 @@ function LabFeedback() {
         <p className="mb-3 text-sm text-ink2">Paste or upload your lab work or notes for the week. You&apos;ll get feedback against what the lab was meant to teach. It isn&apos;t marked, and nobody else sees it.</p>
         <div className="mb-3 flex flex-wrap gap-2">
           {labs.map((l) => (
-            <button key={l.id} onClick={() => setLabId(l.id)} className={`rounded border px-3 py-1.5 text-sm ${l.id === lab.id ? "border-[#14284b] bg-[#eef1f7] font-semibold text-[#14284b]" : "border-line bg-white hover:bg-[#f9fafc]"}`}>
+            <button key={l.id} onClick={() => setLabId(l.id)} className={`rounded border px-3 py-1.5 text-sm ${l.id === lab.id ? "border-[#111111] bg-[#f5f5f5] font-semibold text-[#111111]" : "border-line bg-white hover:bg-[#fafafa]"}`}>
               Week {l.week}: {l.title}
             </button>
           ))}
@@ -95,7 +95,7 @@ function LabFeedback() {
 function AssessmentFeedback({ a }: { a: Assessment }) {
   const s = a.session;
   if (!s || a.status === "not_started")
-    return <Card className="p-5 text-ink2">{a.title}: nothing to show yet. <Link href="/submit" className="font-medium text-[#14284b] underline">Submit your work</Link> and complete the viva.</Card>;
+    return <Card className="p-5 text-ink2">{a.title}: nothing to show yet. <Link href="/submit" className="font-medium text-[#111111] underline">Submit your work</Link> and complete the viva.</Card>;
   const awaiting = a.status !== "reviewed";
   return (
     <div className="space-y-3">
@@ -141,7 +141,7 @@ export default function Feedback() {
       <div className="no-print mb-4 flex border-b border-line" role="tablist">
         {([["labs", "Weekly lab feedback"], ["assess", "Assessments and viva"]] as const).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm ${tab === k ? "border-[#14284b] font-semibold text-[#14284b]" : "border-transparent text-ink2 hover:text-ink"}`}>{label}</button>
+            className={`-mb-px border-b-2 px-4 py-2 text-sm ${tab === k ? "border-[#111111] font-semibold text-[#111111]" : "border-transparent text-ink2 hover:text-ink"}`}>{label}</button>
         ))}
       </div>
 

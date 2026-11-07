@@ -4,6 +4,7 @@ import type { Status } from "@/lib/types";
 export const STATUS_COLOR: Record<Status, string> = {
   green: "#2E9D5B", amber: "#E8A33D", red: "#D9483B", untested: "#C9C9C6",
 };
+const STATUS_INK: Record<Status, string> = { green: "#247443", amber: "#8f5d0a", red: "#b42318", untested: "#6b6b6b" };
 export const STATUS_LABEL: Record<Status, string> = {
   green: "Met", amber: "Partly", red: "Missing", untested: "Not tested",
 };
@@ -23,7 +24,7 @@ export function Pill({ status, children }: { status: Status; children?: ReactNod
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-      style={{ background: `${c}1f`, color: status === "untested" ? "#6b6b6b" : c }}
+      style={{ background: `${c}1f`, color: STATUS_INK[status] }}
     >
       <Dot status={status} size={6} />
       {children ?? STATUS_LABEL[status]}
@@ -40,14 +41,14 @@ export function Confidence({ value }: { value: number }) {
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-md border border-line bg-white ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border border-line bg-white ${className}`}>{children}</div>;
 }
 
 export function PrimaryButton({ className = "", ...p }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...p}
-      className={`inline-flex h-9 items-center justify-center gap-2 rounded bg-btn px-3.5 text-sm font-medium text-white transition-colors hover:bg-[#0d1c38] disabled:cursor-not-allowed disabled:bg-[#cfcfcc] ${className}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-btn px-3.5 text-sm font-medium text-white transition-colors hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#cfcfcc] ${className}`}
     />
   );
 }
@@ -56,7 +57,7 @@ export function GhostButton({ className = "", ...p }: ButtonHTMLAttributes<HTMLB
   return (
     <button
       {...p}
-      className={`inline-flex h-9 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-sm font-medium text-ink transition-colors hover:bg-[#f6f6f4] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 text-sm font-medium text-ink transition-colors hover:bg-[#f6f6f4] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     />
   );
 }
@@ -67,7 +68,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function Empty({ icon, title, body, action }: { icon: ReactNode; title: string; body: string; action?: ReactNode }) {
   return (
-    <Card className="mx-auto mt-10 flex max-w-md flex-col items-center gap-3 p-10 text-center">
+    <Card className="mx-auto mt-10 flex max-w-md flex-col items-center gap-2 p-8 text-center">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f3f1] text-ink2">{icon}</div>
       <h2 className="text-base font-semibold">{title}</h2>
       <p className="text-ink2">{body}</p>
@@ -78,9 +79,9 @@ export function Empty({ icon, title, body, action }: { icon: ReactNode; title: s
 
 export function PageTitle({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div className="mb-5 border-b border-line pb-3">
-      <h1 className="text-2xl">{title}</h1>
-      {sub && <p className="mt-1 text-ink2">{sub}</p>}
+    <div className="mb-6">
+      <h1 className="text-xl font-semibold leading-7">{title}</h1>
+      {sub && <p className="mt-1 text-[13px] leading-5 text-ink2">{sub}</p>}
     </div>
   );
 }
@@ -90,7 +91,7 @@ export function NotifBadge({ count, label = "notifications" }: { count: number; 
   if (!count) return null;
   return (
     <span
-      className="tnum inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#e5372a] px-1 text-[11px] font-bold leading-none text-white shadow-[0_0_0_2px_#fff]"
+      className="tnum inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#e5372a] px-1 text-[11px] font-medium leading-none text-white"
       aria-label={`${count} ${label}`}
     >
       {count}

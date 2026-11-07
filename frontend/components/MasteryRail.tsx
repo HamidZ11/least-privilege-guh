@@ -8,8 +8,8 @@ import type { Concept } from "@/lib/types";
 export default function MasteryRail({ concepts, activeId, title = "Mastery map" }: { concepts: Concept[]; activeId: string | null; title?: string }) {
   const done = concepts.filter((c) => c.status === "green").length;
   return (
-    <Card className="p-4">
-      <div className="mb-2 flex items-baseline justify-between gap-2">
+    <Card className="p-5">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">{title}</h3>
         <span className="tnum shrink-0 text-xs text-ink2">{done}/{concepts.length} secure</span>
       </div>
