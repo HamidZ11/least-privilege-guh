@@ -54,7 +54,7 @@ export default function ChatPanel({
   modeRef.current = mode;
 
   // The backend decides who is talking. In a viva, mode "teach_max" means Max takes over until it returns to "viva".
-  const eff: Kind = kind === "viva" && session.mode === "teach_max" ? "max" : kind;
+  const eff: Kind = kind === "viva" && session.mode === "teach_max" && session.viva_transcript.length > 0 ? "max" : kind;
   const effRef = useRef(eff);
   effRef.current = eff;
   const isMax = eff === "max";
@@ -69,17 +69,27 @@ export default function ChatPanel({
     return () => { stopSpeaking(); recRef.current?.stop(); };
   }, []);
 
+  // Speech recognition only exists in Chrome and Edge. Say so instead of failing quietly.
+  type W = typeof window & { SpeechRecognition?: new () => Rec; webkitSpeechRecognition?: new () => Rec };
+  const [voiceOk, setVoiceOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    const w = window as W;
+    const ok = !!(w.SpeechRecognition ?? w.webkitSpeechRecognition);
+    setVoiceOk(ok);
+    if (!ok) setMode("text");
+  }, []);
+
   const chooseMode = (m: Mode) => {
+    if (m === "voice" && voiceOk === false) return;
     setMode(m);
     try { localStorage.setItem("viva-mode", m); } catch { /* ignore */ }
     if (m === "text") { stopSpeaking(); recRef.current?.stop(); setPhase("idle"); }
   };
 
   const startListening = () => {
-    type W = typeof window & { SpeechRecognition?: new () => Rec; webkitSpeechRecognition?: new () => Rec };
     const w = window as W;
     const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!SR) { setError("This browser can't listen. Type your answer instead."); retryRef.current = null; setPhase("idle"); return; }
+    if (!SR) { setError("Voice input works in Chrome — type your answer below"); retryRef.current = null; setMode("text"); setPhase("idle"); return; }
     const r = new SR();
     r.lang = "en-GB";
     r.interimResults = false;
@@ -114,7 +124,7 @@ export default function ChatPanel({
       onSession(next);
       retryRef.current = null;
       // Whoever the backend says is speaking now (it may have switched mode).
-      const nextKind: Kind = kind === "viva" && next.mode === "teach_max" ? "max" : kind;
+      const nextKind: Kind = kind === "viva" && next.mode === "teach_max" && next.viva_transcript.length > 0 ? "max" : kind;
       const last = (nextKind === "max" ? next.max_transcript : next.viva_transcript).at(-1);
       if (modeRef.current === "voice" && last && last.role !== "student") {
         setPhase("speaking");
@@ -181,11 +191,14 @@ export default function ChatPanel({
           </div>
           {kind === "viva" && <span className="tnum rounded border border-line px-2 py-1 text-sm" aria-label="Viva timer">{timer}</span>}
           <div className="flex overflow-hidden rounded-lg border border-line text-xs" role="group" aria-label="Answer mode">
-            <button onClick={() => chooseMode("voice")} aria-pressed={mode === "voice"} className={`flex items-center gap-1.5 px-2.5 py-1.5 ${mode === "voice" ? "bg-btn font-semibold text-white" : "text-ink2 hover:bg-[#f6f6f4]"}`}><Mic size={14} /> Voice</button>
+            <button onClick={() => chooseMode("voice")} aria-pressed={mode === "voice"} disabled={voiceOk === false} title={voiceOk === false ? "Voice input works in Chrome" : undefined} className={`flex items-center gap-1.5 px-2.5 py-1.5 ${mode === "voice" ? "bg-btn font-semibold text-white" : "text-ink2 hover:bg-[#f6f6f4]"}`}><Mic size={14} /> Voice</button>
             <button onClick={() => chooseMode("text")} aria-pressed={mode === "text"} className={`flex items-center gap-1.5 px-2.5 py-1.5 ${mode === "text" ? "bg-btn font-semibold text-white" : "text-ink2 hover:bg-[#f6f6f4]"}`}><Keyboard size={14} /> Text</button>
           </div>
         </div>
 
+        {voiceOk === false && (
+          <p className="border-b border-line bg-[#fff6e0] px-5 py-2 text-sm text-[#8f5d0a]" role="status">Voice input works in Chrome — type your answer below</p>
+        )}
         {kind === "viva" && isMax && (
           <div className="fadein flex items-center gap-2 border-b border-line bg-[#e6f4f2] px-5 py-2 text-sm text-[#0b5a54]" role="status">
             <Wand2 size={14} /> Switching to Teach Max: let&apos;s fix this one first

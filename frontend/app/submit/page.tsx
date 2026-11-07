@@ -141,17 +141,26 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
         onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
         onDrop={onDrop}
-        className={`relative rounded-xl border-2 border-dashed p-4 outline-none focus-visible:ring-2 focus-visible:ring-ink ${dragging ? "border-ink bg-[#f0f0f0]" : "border-[#dedede] bg-white"}`}
+        className={`relative rounded-xl border-2 border-dashed outline-none focus-visible:ring-2 focus-visible:ring-[#111111] ${dragging ? "border-[#111111] bg-[#f5f5f5]" : "border-[#dedede] bg-white"}`}
       >
-        <button type="button" onClick={() => input.current?.click()} className="mb-4 flex w-full flex-col items-center gap-2 py-4 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-[#fafafa]"><Upload size={18} className="text-ink2" /></span><span className="text-sm font-medium">Drag your file here or click to browse</span><span className="text-xs text-ink2">Or paste your work below</span></button>
         <textarea
           id={`w-${a.id}`}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          rows={5}
-          placeholder="Paste your coursework…"
-          className="w-full resize-none rounded border border-line bg-white px-3 py-2 outline-none focus:border-ink3"
+          rows={8}
+          placeholder={text || file ? "" : " "}
+          aria-describedby={`drop-${a.id}`}
+          className="w-full resize-none rounded bg-transparent px-3 py-2 outline-none"
         />
+        {!text && !file && !dragging && (
+          <div id={`drop-${a.id}`} className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
+            <Upload size={24} className="text-[#111111]" />
+            <p className="text-sm font-semibold text-[#111111]">
+              Drag your file here or <button type="button" onClick={() => input.current?.click()} className="pointer-events-auto underline underline-offset-2">click to browse</button>
+            </p>
+            <p className="text-xs text-ink2">{ALLOWED.join(", ")} up to 5 MB. Or click in the box and paste your text.</p>
+          </div>
+        )}
         {dragging && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded bg-[#f5f5f5]/90 text-sm font-semibold text-[#111111]">
             <Upload size={16} className="mr-2" /> Drop your file to upload
