@@ -167,7 +167,7 @@ export const answerCluster = (cluster_id: string, text: string) =>
     mockClusters = mockClusters.map((c) => (c.id === cluster_id ? { ...c, status: "answered", lecturer_answer: text } : c));
     return clone(mockClusters.find((c) => c.id === cluster_id)!);
   });
-export const getReports = () => call<Session[]>("/api/lecturer/reports", undefined, () => [clone(SESSION_FIXTURE)]);
+export const getReports = () => call<Session[]>("/api/lecturer/reports", undefined, () => []);
 export const getHeatmap = () => call<HeatmapRow[]>("/api/lecturer/heatmap", undefined, () => clone(HEATMAP_FIXTURE));
 export const getAgents = () =>
   call<{ agents: AgentCard[]; log: GuardianEvent[] }>("/api/agents", undefined, () => clone(AGENTS_FIXTURE));
