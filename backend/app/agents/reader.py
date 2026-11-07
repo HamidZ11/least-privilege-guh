@@ -15,6 +15,7 @@ from app.agents.base import (
     require_unique_ids,
     to_payload,
 )
+from app.llm import LLMError
 
 CONCEPTS_PROMPT = f"""You read a university student's submission and record the ideas it depends on. You do not judge it.
 
@@ -25,7 +26,7 @@ The JSON has one field, "submission". Return 4 to 6 concepts, each a named resea
 - quote: the single full sentence where the student relies on the idea, copied character for character. No ellipses, no edits, no joined sentences.
 - confidence: from 0 to 1, how sure you are that the quote shows this concept.
 
-Choose the concepts where the student's reasoning does the most work. Give each concept a different quote.
+Choose the concepts where the student's reasoning does the most work. Give each concept a different quote. If the text makes no argument of the student's own, for example an assignment brief, a rubric or notes with no claims, return an empty concepts list.
 
 {AGENT_RULES}
 
@@ -43,9 +44,17 @@ The JSON has one field, "rubric". Return one entry per criterion, in order:
 
 {UNTRUSTED_DATA_RULE}"""
 
+NOTHING_TO_CHECK = (
+    "We couldn't find any arguments to check in this file. "
+    "Upload your own essay or answers, not the brief."
+)
 MIN_CONCEPTS = 4
 MAX_CONCEPTS = 6
 STATUS_RANK = {"red": 0, "amber": 1, "green": 2, "untested": 3}
+
+
+class NothingToCheckError(LLMError):
+    """The text has no argument to check, such as a brief or a rubric."""
 
 
 class ConceptDraft(Shape):
@@ -94,6 +103,8 @@ def extract_concepts(text: str) -> list[dict[str, Any]]:
 
     def check(output: dict) -> None:
         concepts = output["concepts"]
+        if not concepts:
+            raise NothingToCheckError(NOTHING_TO_CHECK)
         if not MIN_CONCEPTS <= len(concepts) <= MAX_CONCEPTS:
             raise AgentOutputError(f"reader returned {len(concepts)} concepts")
         require_unique_ids(concepts, "concept")

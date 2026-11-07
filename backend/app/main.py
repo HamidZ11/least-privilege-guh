@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.agents.reader import seed_statuses
+from app.agents.reader import NothingToCheckError, seed_statuses
 from app.llm import LLMError, LLMNotConfiguredError
 from app.parsing import ParseError, extract_text
 from app.routes import router as skeleton_router
@@ -60,7 +60,12 @@ app.add_middleware(
 
 @app.exception_handler(LLMError)
 def handle_llm_error(request: Request, error: LLMError) -> JSONResponse:
-    status = 503 if isinstance(error, LLMNotConfiguredError) else 502
+    if isinstance(error, LLMNotConfiguredError):
+        status = 503
+    elif isinstance(error, NothingToCheckError):
+        status = 422
+    else:
+        status = 502
     return JSONResponse({"detail": str(error)}, status_code=status)
 
 
