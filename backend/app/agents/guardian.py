@@ -355,13 +355,13 @@ def scan_input(text: str) -> dict:
         text = "" if text is None else str(text)
     cleaned, flags, _reasons = _analyze(text)
     if flags:
-        record_event(
+        record_call(
             "Guardian",
             "injection_blocked",
             "Hidden instruction removed before analysis",
         )
     else:
-        record_event("Guardian", "input_scanned", "Input scanned")
+        record_call("Guardian", "input_scanned", "Input scanned")
     return {"text": cleaned, "flags": flags}
 
 
@@ -377,9 +377,9 @@ def check_output(text: str, mode: str = "output") -> str:
     reasons = _output_reasons(text)
     if reasons or not text.strip():
         label = reasons[0] if reasons else "empty output"
-        record_event("Guardian", "output_blocked", f"Output blocked: {label}")
+        record_call("Guardian", "output_blocked", f"Output blocked: {label}")
         return _FALLBACK
-    record_event("Guardian", "passed", f"Output checked ({mode_label})")
+    record_call("Guardian", "passed", f"Output checked ({mode_label})")
     return text
 
 
@@ -410,10 +410,13 @@ def reset_observability() -> None:
         _cards[name] = {"name": name, "role": role, "calls": 0, "last_action": "idle"}
 
 
-def record_event(agent: str, action: str, detail: str) -> None:
-    """Append one GuardianEvent and bump that agent's counter.
+def record_call(agent: str, action: str, detail: str) -> None:
+    """Hamid calls this from agents/base.py.
 
-    detail is truncated. Do not pass submissions, student names, or secrets.
+    record_call(agent: str, action: str, detail: str) -> None
+
+    action must be input_scanned, injection_blocked, output_blocked, escalated,
+    or passed. detail is truncated and must not include the submission.
     """
     if action not in _ACTIONS:
         raise ValueError(f"Unknown guardian action: {action}")
@@ -431,17 +434,16 @@ def record_event(agent: str, action: str, detail: str) -> None:
     )
 
 
-def note_agent(name: str, action: str, detail: str) -> None:
-    """Hamid can record Reader, Checker, Examiner, or Marker activity."""
-    record_event(name, action, detail)
-
-
 def agents_status() -> dict:
-    """Return {agents: AgentCard[], log: GuardianEvent[]} for GET /api/agents."""
+    """Return {agents: AgentCard[], log: GuardianEvent[]} for GET /api/agents.
+
+    The log is newest first and keeps at most 50 events.
+    """
     names = [name for name, _role in _ROLES]
     extras = [name for name in _cards if name not in names]
     agents = [dict(_cards[name]) for name in names + extras]
-    return {"agents": agents, "log": [dict(event) for event in _log[-_LOG_LIMIT:]]}
+    newest_first = list(reversed(_log[-_LOG_LIMIT:]))
+    return {"agents": agents, "log": [dict(event) for event in newest_first]}
 
 
 reset_observability()
