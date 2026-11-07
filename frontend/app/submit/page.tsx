@@ -141,16 +141,26 @@ function Uploader({ a, onDone }: { a: Assessment; onDone: () => void }) {
         onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
         onDrop={onDrop}
-        className={`relative rounded outline-none focus-visible:ring-2 focus-visible:ring-[#14284b] ${dragging ? "border-2 border-dashed border-[#14284b] bg-[#eef1f7]" : "border-2 border-transparent"}`}
+        className={`relative rounded border-2 border-dashed outline-none focus-visible:ring-2 focus-visible:ring-[#14284b] ${dragging ? "border-[#14284b] bg-[#eef1f7]" : "border-[#c9cfdb] bg-white"}`}
       >
         <textarea
           id={`w-${a.id}`}
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={8}
-          placeholder="Paste your work here, or drag a file onto this box…"
-          className="w-full resize-none rounded border border-line bg-white px-3 py-2 outline-none focus:border-ink3"
+          placeholder={text || file ? "" : " "}
+          aria-describedby={`drop-${a.id}`}
+          className="w-full resize-none rounded bg-transparent px-3 py-2 outline-none"
         />
+        {!text && !file && !dragging && (
+          <div id={`drop-${a.id}`} className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-center">
+            <Upload size={24} className="text-[#14284b]" />
+            <p className="text-sm font-semibold text-[#14284b]">
+              Drag your file here or <button type="button" onClick={() => input.current?.click()} className="pointer-events-auto underline underline-offset-2">click to browse</button>
+            </p>
+            <p className="text-xs text-ink2">{ALLOWED.join(", ")} up to 5 MB. Or click in the box and paste your text.</p>
+          </div>
+        )}
         {dragging && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded bg-[#eef1f7]/90 text-sm font-semibold text-[#14284b]">
             <Upload size={16} className="mr-2" /> Drop your file to upload

@@ -6,7 +6,9 @@ the words, so a badly worded reply can't change the flow.
 """
 
 import logging
+import re
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from app.agents.base import (
@@ -23,13 +25,13 @@ from app.stubs import resolve
 
 logger = logging.getLogger(__name__)
 
-QUESTION_PROMPT = f"""You are a fair, calm examiner running a short viva on a student's own submission. You check they understand and can defend what they wrote.
+QUESTION_PROMPT = f"""You are an examiner in a short spoken viva about a student's own submission. You sound like a calm British lecturer talking, not writing.
 
 The JSON has "concept" (with the student's quote), "follow_up", "last_answer" and "history" (the viva so far).
-- If follow_up is false, ask about the concept and open from their own words, in this style: You wrote "<their quote>". Walk me through why.
-- If follow_up is true, last_answer was vague: ask about the exact point it avoided, on the same concept.
+- If follow_up is false: quote the student's own words and ask them to walk you through the thinking behind them, in this style: You wrote "<their quote>". Walk me through why.
+- If follow_up is true: last_answer was vague. Pick the exact point it skipped and ask about that, on the same concept.
 
-Ask exactly one question, in one or two sentences. Never give the answer, say whether anything was right, or ask two things at once.
+Rules: at most two short sentences. Plain spoken British English. Quote the student's own words. Ask exactly one question. No praise, no "Great question", no thanks, no lists, no summary of what they said, no hints, and never say whether anything was right.
 
 {AGENT_RULES}
 
@@ -187,6 +189,18 @@ def _apply_mark(
 # Viva
 
 
+EXAMINER_SLOP = re.compile(
+    r"great question|thank you|thanks|good answer|well done|excellent|^\s*[-*\d]+[.)]?\s", re.IGNORECASE | re.MULTILINE
+)
+MAX_QUESTION_WORDS = 60
+
+
+def _examiner_style(output: dict) -> None:
+    text = output["question"]
+    if EXAMINER_SLOP.search(text) or text.count("?") != 1 or len(text.split()) > MAX_QUESTION_WORDS:
+        raise AgentOutputError("examiner question broke the style rules")
+
+
 def _ask(session: dict[str, Any], concept: dict[str, Any], last_answer: str | None) -> dict[str, Any]:
     follow_up = last_answer is not None
     fallback = (
@@ -198,6 +212,7 @@ def _ask(session: dict[str, Any], concept: dict[str, Any], last_answer: str | No
         QuestionWriter(),
         "question",
         fallback,
+        _examiner_style,
         concept=concept,
         follow_up=follow_up,
         last_answer=last_answer,
@@ -242,14 +257,16 @@ def _next_question(session: dict[str, Any]) -> dict[str, Any]:
 
 
 def _hand_over_to_max(session: dict[str, Any], concept: dict[str, Any]) -> dict[str, Any]:
-    """Offer Max on this concept and keep the viva moving. Max's opening is
-    written when he is actually opened, not here, so the student isn't kept
-    waiting for a line they haven't asked to see."""
+    """Open Max on this concept and keep the viva moving. Max's opening and
+    the next viva question are written at the same time."""
     session["return_to_viva"] = True
-    session["max_handover_id"] = concept["id"]
     session.setdefault("max_taught", []).append(concept["id"])
-    _next_question(session)
-    if session["mode"] == "viva":
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        opening = pool.submit(_max_line, concept)
+        _next_question(session)
+    live = session["mode"] == "viva"
+    _open_max(session, concept, opening.result())
+    if live:
         session["mode"] = "teach_max"
     return session
 
@@ -289,17 +306,25 @@ def viva_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
 # Max
 
 
-def _max_open(session: dict[str, Any], concept: dict[str, Any]) -> dict[str, Any]:
-    line = _write(
+def _max_line(concept: dict[str, Any]) -> str:
+    return _write(
         MaxOpener(),
         "max_says",
         f'I reckon this bit is totally right: "{concept["quote"]}" Don\'t you think?',
         concept=concept,
     )
+
+
+def _open_max(session: dict[str, Any], concept: dict[str, Any], line: str) -> dict[str, Any]:
     session["max_concept_id"] = concept["id"]
     session["current_concept_id"] = concept["id"]
-    _say(session, "max_transcript", "max", line, concept["id"])
+    safe_line = check_output(line, "teach_max")
+    session["max_transcript"].append({"role": "max", "text": safe_line, "concept_id": concept["id"]})
     return session
+
+
+def _max_open(session: dict[str, Any], concept: dict[str, Any]) -> dict[str, Any]:
+    return _open_max(session, concept, _max_line(concept))
 
 
 def _mode_after_max(session: dict[str, Any]) -> str:
@@ -319,7 +344,7 @@ def max_turn(session: dict[str, Any], text: str | None) -> dict[str, Any]:
     if text is None or concept is None:
         if concept is not None:
             return session  # Max is already waiting for a reply
-        weakest = _concept(session, session.pop("max_handover_id", None)) or _weak_concept(session)
+        weakest = _weak_concept(session)
         if weakest is None:
             _say(session, "max_transcript", "max", "I think we've got everything covered!", None)
             session["mode"] = _mode_after_max(session)
